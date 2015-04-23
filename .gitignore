@@ -1,0 +1,10 @@
+.cproject
+.project
+.settings
+.tmp_versions
+*.cmd
+*.o
+*.ko
+Module.symvers
+modules.order
+*.patch
