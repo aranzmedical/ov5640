@@ -1415,7 +1415,9 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 		/* dump the first nine frames: 1/30*9 */
 		msec_wait4stable = 300;
 	}
-	msleep(msec_wait4stable);
+	//DISABLED WAIT FOR PERFORMANCE :D
+	pr_err("This driver is NOT sleeping on the job\n");
+	//msleep(msec_wait4stable);
 
 	if (mipi_csi2_info) {
 		unsigned int i;
