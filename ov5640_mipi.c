@@ -61,6 +61,7 @@
 #define V4L2_CID_DRIVER_BASE            (V4L2_CID_USER_BASE | 0x1001)
 //#define V4L2_CID_TEST_PATTERN           (V4L2_CID_DRIVER_BASE + 0)
 #define V4L2_CID_FOCUS_TRIGGER          (V4L2_CID_DRIVER_BASE + 1)
+#define V4L2_CID_REGISTERS_BASE         0x10000000
 
 enum ov5640_mode {
 	ov5640_mode_MIN = 0,
@@ -812,7 +813,7 @@ static void ov5640_standby(s32 enable)
 		gpio_set_value(pwn_gpio, 1);
 	else
 		gpio_set_value(pwn_gpio, 0);
-
+	pr_debug("ov5640_mipi_camera_powerdown: powerdown=%x, power_gp=0x%x\n", enable, pwn_gpio);
 	msleep(2);
 }
 
@@ -1944,7 +1945,6 @@ static int ioctl_queryctrl(struct v4l2_int_device *s, struct v4l2_queryctrl *qc)
 		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
 	case V4L2_CID_FOCUS_ABSOLUTE:
 		return v4l2_ctrl_query_fill(qc, 0, 255, 1, 0);
-			
 	}
 	return -EINVAL;
 }
@@ -1962,6 +1962,18 @@ static int ioctl_queryctrl(struct v4l2_int_device *s, struct v4l2_queryctrl *qc)
 static int ioctl_g_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 {
 	int ret = 0;
+
+	// ARANZ - Allow access to the internal register table
+	if (vc->id & V4L2_CID_REGISTERS_BASE) {
+		uint16_t addr = vc->id & 0x0000FFFF;
+		if (addr == 0)
+			return -EINVAL;
+
+		uint8_t value = 0;
+		ov5640_read_reg(addr, &value);
+		vc->value = value;
+		return 0;
+	}
 
 	switch (vc->id) {
 	case V4L2_CID_BRIGHTNESS:
@@ -2029,6 +2041,16 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	unsigned char status,i;
 	pr_debug("In ov5640:ioctl_s_ctrl %d\n",
 		 vc->id);
+
+	if (vc->id & V4L2_CID_REGISTERS_BASE) {
+		uint16_t addr = vc->id & 0x0000FFFF;
+		if (addr == 0)
+			return -EINVAL;
+
+		uint8_t value = vc->value;
+		ov5640_write_reg(addr, value);
+		return 0;
+	}
 
 	switch (vc->id) {
 	case V4L2_CID_BRIGHTNESS:
