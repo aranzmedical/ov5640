@@ -73,7 +73,10 @@ enum ov5640_mode {
 	ov5640_mode_QSXGA_2592_1944 = 6,
 	ov5640_mode_QCIF_176_144 = 7,
 	ov5640_mode_XGA_1024_768 = 8,
-	ov5640_mode_MAX = 8,
+
+	ov5640_mode_QSXGA_RAW = 9, // Custom mode
+
+	ov5640_mode_MAX = 9,
 	ov5640_mode_INIT = 0xff, /*only for sensor init*/
 };
 
@@ -478,41 +481,6 @@ static struct reg_value ov5640_setting_30fps_720P_1280_720[] = {
 	{0x4407, 0x04, 0, 0}, {0x460b, 0x37, 0, 0}, {0x460c, 0x20, 0, 0},
 	{0x3824, 0x04, 0, 0}, {0x5001, 0x83, 0, 0}, {0x4005, 0x1a, 0, 0},
 	{0x3008, 0x02, 0, 0}, {0x3503, 0,    0, 0},
-	
-	/* Commented out - somehow this seems to crash the driver
-	//===========================================================================-
-	//===========================================================================-
-	// MANUAL EXPOSURE AND GAIN CONTROL
-	{0x3503, 0x03, 0, 0}, // Set exposure and gain to manual mode
-
-	// Exposure[19:0] is in 1/16ths of a line. 
-	// For example, if we set:
-	//    0x3500=0x00, 0x3501=0x01, 0x3502=0x00
-	// we would get an exposure of 16 lines.
-	// As an additional note, Exposure[3:0] should be zero, as fractional lines are not supported
-
-	// 10 milliseconds at 1080 rows, 15 fps is 720*30*0.01 = 216 rows
-	//    216*16 >> 16 = 0, so set 0x3500 to 0x00
-	//    (216*16 >> 8) & 0xFF = 13, so set 0x3501 to 13, or 0x0D
-	//    216*16 & 0xFF = 128, so set 0x3502 to 128, or 0x40
-	{0x3500, 0x00, 0, 0 }, // Bits[3:0] are Exposure[19:16]
-	{0x3501, 0x0D, 0, 0 }, // Bits[7:0] are Exposure[15:8]
-	{0x3502, 0x80, 0, 0 }, // Bits[7:0] are Exposure[7:0]
-
-	// These settings are used if we want to expose over multiple frames
-	{0x350C, 0x00, 0, 0}, // Extra exposure [15:8] - whole frames
-	{0x350D, 0x00, 0, 0}, // Extra exposure [7:0] - whole frames
-	
-	// Gain[9:0] is gain/16, and has a maximum of 64x
-	// For example, for the unity gain (1x), we set:
-	//    0x350A=0x00, 0x350B=0x10
-
-	// Gain of 4x
-	{0x350A, 0x00, 0, 0}, // Bits[1:0] are Gain[9:8]
-	{0x350B, 0x40, 0, 0}, // Bits[7:0] are Gain[7:0]
-	//===========================================================================-
-	//===========================================================================-
-	* */
 };
 
 static struct reg_value ov5640_setting_15fps_720P_1280_720[] = {
@@ -571,39 +539,6 @@ static struct reg_value ov5640_setting_30fps_1080P_1920_1080[] = {
 	{0x460b, 0x37, 0, 0}, {0x460c, 0x20, 0, 0}, {0x3824, 0x04, 0, 0},
 	{0x4005, 0x1a, 0, 0}, {0x3008, 0x02, 0, 0},
 	{0x3503, 0, 0, 0},
-	
-	//===========================================================================-
-	//===========================================================================-
-	// MANUAL EXPOSURE AND GAIN CONTROL
-	{0x3503, 0x03, 0, 0}, // Set exposure and gain to manual mode
-
-	// Exposure[19:0] is in 1/16ths of a line. 
-	// For example, if we set:
-	//    0x3500=0x00, 0x3501=0x01, 0x3502=0x00
-	// we would get an exposure of 16 lines.
-	// As an additional note, Exposure[3:0] should be zero, as fractional lines are not supported
-
-	// 10 milliseconds at 1080 rows, 15 fps is 1080*30*0.01 = 324 rows
-	//    324*16 >> 16 = 0, so set 0x3500 to 0x00
-	//    (324*16 >> 8) & 0xFF = 20, so set 0x3501 to 20, or 0x14
-	//    324*16 & 0xFF = 64, so set 0x3502 to 64, or 0x40
-	{0x3500, 0x00, 0, 0 }, // Bits[3:0] are Exposure[19:16]
-	{0x3501, 0x14, 0, 0 }, // Bits[7:0] are Exposure[15:8]
-	{0x3502, 0x40, 0, 0 }, // Bits[7:0] are Exposure[7:0]
-
-	// These settings are used if we want to expose over multiple frames
-	{0x350C, 0x00, 0, 0}, // Extra exposure [15:8] - whole frames
-	{0x350D, 0x00, 0, 0}, // Extra exposure [7:0] - whole frames
-	
-	// Gain[9:0] is gain/16, and has a maximum of 64x
-	// For example, for the unity gain (1x), we set:
-	//    0x350A=0x00, 0x350B=0x10
-
-	// Gain of 4x
-	{0x350A, 0x00, 0, 0}, // Bits[1:0] are Gain[9:8]
-	{0x350B, 0x40, 0, 0}, // Bits[7:0] are Gain[7:0]
-	//===========================================================================-
-	//===========================================================================-
 };
 
 static struct reg_value ov5640_setting_15fps_1080P_1920_1080[] = {
@@ -674,45 +609,45 @@ static struct reg_value ov5640_setting_15fps_QSXGA_2592_1944[] = {
 	{0x3708, 0x21, 0, 0}, {0x3709, 0x12, 0, 0}, {0x370c, 0x00, 0, 0},
 
 	// AEC/AGC power down domain control
-	// {0x3a02, 0x03, 0, 0}, {0x3a03, 0xd8, 0, 0}, // 60Hz maximum exposure output limit
-	// {0x3a08, 0x01, 0, 0}, {0x3a09, 0x27, 0, 0}, // AEC B50 Step (50Hz bandwidth)
-	// {0x3a0a, 0x00, 0, 0}, {0x3a0b, 0xf6, 0, 0}, // AEC B60 Step (60Hz bandwidth)
-	// {0x3a0e, 0x03, 0, 0}, // AEC CTRL0E (50Hz max bands in one frame)
-	// {0x3a0d, 0x04, 0, 0}, // AEC CTRL0D (60Hz max bands in one frame)
-	// {0x3a14, 0x03, 0, 0}, {0x3a15, 0xd8, 0, 0}, // 50Hz maximum exposure output limit
+	{0x3a02, 0x03, 0, 0}, {0x3a03, 0xd8, 0, 0}, // 60Hz maximum exposure output limit
+	{0x3a08, 0x01, 0, 0}, {0x3a09, 0x27, 0, 0}, // AEC B50 Step (50Hz bandwidth)
+	{0x3a0a, 0x00, 0, 0}, {0x3a0b, 0xf6, 0, 0}, // AEC B60 Step (60Hz bandwidth)
+	{0x3a0e, 0x03, 0, 0}, // AEC CTRL0E (50Hz max bands in one frame)
+	{0x3a0d, 0x04, 0, 0}, // AEC CTRL0D (60Hz max bands in one frame)
+	{0x3a14, 0x03, 0, 0}, {0x3a15, 0xd8, 0, 0}, // 50Hz maximum exposure output limit
 
-	//===========================================================================-
-	//===========================================================================-
-	// MANUAL EXPOSURE AND GAIN CONTROL
-	{0x3503, 0x03, 0, 0}, // Set exposure and gain to manual mode
-
-	// Exposure[19:0] is in 1/16ths of a line. 
-	// For example, if we set:
-	//    0x3500=0x00, 0x3501=0x01, 0x3502=0x00
-	// we would get an exposure of 16 lines.
-	// As an additional note, Exposure[3:0] should be zero, as fractional lines are not supported
-
-	// 10 milliseconds at 1944 rows, 15 fps is 1944*15*0.01 = 292 rows
-	//    292*16 >> 16 = 0, so set 0x3500 to 0x00
-	//    (292*16 >> 8) & 0xFF = 18, so set 0x3501 to 18, or 0x12
-	//    292*16 & 0xFF = 64, so set 0x3502 to 64, or 0x40
-	{0x3500, 0x00, 0, 0 }, // Bits[3:0] are Exposure[19:16]
-	{0x3501, 0x12, 0, 0 }, // Bits[7:0] are Exposure[15:8]
-	{0x3502, 0x40, 0, 0 }, // Bits[7:0] are Exposure[7:0]
-
-	// These settings are used if we want to expose over multiple frames
-	{0x350C, 0x00, 0, 0}, // Extra exposure [15:8] - whole frames
-	{0x350D, 0x00, 0, 0}, // Extra exposure [7:0] - whole frames
-
-	// Gain[9:0] is gain/16, and has a maximum of 64x
-	// For example, for the unity gain (1x), we set:
-	//    0x350A=0x00, 0x350B=0x10
-
-	// Gain of 4x
-	{0x350A, 0x00, 0, 0}, // Bits[1:0] are Gain[9:8]
-	{0x350B, 0x40, 0, 0}, // Bits[7:0] are Gain[7:0]
-	//===========================================================================-
-	//===========================================================================-
+//	//===========================================================================-
+//	//===========================================================================-
+//	// MANUAL EXPOSURE AND GAIN CONTROL
+//	{0x3503, 0x03, 0, 0}, // Set exposure and gain to manual mode
+//
+//	// Exposure[19:0] is in 1/16ths of a line.
+//	// For example, if we set:
+//	//    0x3500=0x00, 0x3501=0x01, 0x3502=0x00
+//	// we would get an exposure of 16 lines.
+//	// As an additional note, Exposure[3:0] should be zero, as fractional lines are not supported
+//
+//	// 10 milliseconds at 1944 rows, 15 fps is 1944*15*0.01 = 292 rows
+//	//    292*16 >> 16 = 0, so set 0x3500 to 0x00
+//	//    (292*16 >> 8) & 0xFF = 18, so set 0x3501 to 18, or 0x12
+//	//    292*16 & 0xFF = 64, so set 0x3502 to 64, or 0x40
+//	{0x3500, 0x00, 0, 0 }, // Bits[3:0] are Exposure[19:16]
+//	{0x3501, 0x12, 0, 0 }, // Bits[7:0] are Exposure[15:8]
+//	{0x3502, 0x40, 0, 0 }, // Bits[7:0] are Exposure[7:0]
+//
+//	// These settings are used if we want to expose over multiple frames
+//	{0x350C, 0x00, 0, 0}, // Extra exposure [15:8] - whole frames
+//	{0x350D, 0x00, 0, 0}, // Extra exposure [7:0] - whole frames
+//
+//	// Gain[9:0] is gain/16, and has a maximum of 64x
+//	// For example, for the unity gain (1x), we set:
+//	//    0x350A=0x00, 0x350B=0x10
+//
+//	// Gain of 4x
+//	{0x350A, 0x00, 0, 0}, // Bits[1:0] are Gain[9:8]
+//	{0x350B, 0x40, 0, 0}, // Bits[7:0] are Gain[7:0]
+//	//===========================================================================-
+//	//===========================================================================-
 		  
 	// BLC control
 	{0x4001, 0x02, 0, 0}, // BLC CTRL01 (BLC start line)
@@ -727,14 +662,56 @@ static struct reg_value ov5640_setting_15fps_QSXGA_2592_1944[] = {
 	{0x460c, 0x22, 0, 0}, // VFIFO CTRL0C (?)
 	{0x3824, 0x01, 0, 0}, // Pixel clock divider
 
+	// Revert any previous format changes from experimental modes below
+	{0x5000, 0xa7, 0, 0}, // ISP CTRL - Colour interpolation, white pixel cancellation, black pixel cancellation, LENC correction, ???
+	{0x4300, 0x3f, 0, 0}, // YUV422: UYVY
+	{0x501f, 0x00, 0, 0}, // ISP YUV422
+
 	// ISP top control registers
 	{0x5001, 0x83, 0, 0}, // ISP control (disable ISP stuff - image effects, auto white balance, etc.)
 
-	//{0x4202, 0x00, 0, 0},        // stream on the sensor
+	{0x4202, 0x00, 0, 0},        // stream on the sensor
+};
+
+static struct reg_value ov5640_setting_15fps_QSXGA_RAW[] = {
+	{0x4202, 0x0f, 0, 0},	/* stream off the sensor */
+	{0x3820, 0x40, 0, 0}, {0x3821, 0x06, 0, 0}, /*disable flip*/
+	{0x3035, 0x11, 0, 0}, {0x3036, 0x54, 0, 0}, {0x3c07, 0x08, 0, 0},
+	{0x3c09, 0x1c, 0, 0}, {0x3c0a, 0x9c, 0, 0}, {0x3c0b, 0x40, 0, 0},
+	{0x3820, 0x40, 0, 0}, {0x3821, 0x06, 0, 0}, {0x3814, 0x11, 0, 0},
+	{0x3815, 0x11, 0, 0}, {0x3800, 0x00, 0, 0}, {0x3801, 0x00, 0, 0},
+	{0x3802, 0x00, 0, 0}, {0x3803, 0x00, 0, 0}, {0x3804, 0x0a, 0, 0},
+	{0x3805, 0x3f, 0, 0}, {0x3806, 0x07, 0, 0}, {0x3807, 0x9f, 0, 0},
+	{0x3808, 0x0a, 0, 0}, {0x3809, 0x20, 0, 0}, {0x380a, 0x07, 0, 0},
+	{0x380b, 0x98, 0, 0}, {0x380c, 0x0b, 0, 0}, {0x380d, 0x1c, 0, 0},
+	{0x380e, 0x07, 0, 0}, {0x380f, 0xb0, 0, 0}, {0x3810, 0x00, 0, 0},
+	{0x3811, 0x10, 0, 0}, {0x3812, 0x00, 0, 0}, {0x3813, 0x04, 0, 0},
+	{0x3618, 0x04, 0, 0}, {0x3612, 0x29, 0, 0}, {0x3708, 0x21, 0, 0},
+	{0x3709, 0x12, 0, 0}, {0x370c, 0x00, 0, 0}, {0x3a02, 0x03, 0, 0},
+	{0x3a03, 0xd8, 0, 0}, {0x3a08, 0x01, 0, 0}, {0x3a09, 0x27, 0, 0},
+	{0x3a0a, 0x00, 0, 0}, {0x3a0b, 0xf6, 0, 0}, {0x3a0e, 0x03, 0, 0},
+	{0x3a0d, 0x04, 0, 0}, {0x3a14, 0x03, 0, 0}, {0x3a15, 0xd8, 0, 0},
+	{0x4001, 0x02, 0, 0}, {0x4004, 0x06, 0, 0}, {0x4713, 0x03, 0, 0},
+	{0x4407, 0x04, 0, 0}, {0x460b, 0x35, 0, 0}, {0x460c, 0x22, 0, 0},
+	{0x3824, 0x01, 0, 0}, {0x5001, 0x83, 0, 70},
+
+	{0x5000, 0x06, 0, 0}, // Disable CIP
+
+	{0x4300, 0x30, 0, 0}, // Output data format: YUV422: YUYV
+	//{0x4300, 0x60, 0, 0}, // RGB565 format // buffer timeout
+	//{0x4300, 0xF8, 0, 0}, // Raw Bayer output // buffer timeout
+
+	{0x501F, 0x03, 0, 0}, // ISP Format: ISP RAW (DPC)
+	//{0x501F, 0x04, 0, 0}, // ISP Format: SNR RAW // This one doesn't work - buffer timeout
+	//{0x501F, 0x05, 0, 0}, // ISP Format: ISP RAW (CIP)
+	//{0x501f, 0x00, 0, 0}, // ISP Format: YUV422
+
+	{0x4202, 0x00, 0, 0},	/* stream on the sensor */
 };
 
 static struct ov5640_mode_info ov5640_mode_info_data[2][ov5640_mode_MAX + 1] = {
 	{
+		// 15FPS modes
 		{ov5640_mode_VGA_640_480, SUBSAMPLING, 640,  480,
 		ov5640_setting_15fps_VGA_640_480,
 		ARRAY_SIZE(ov5640_setting_15fps_VGA_640_480)},
@@ -762,8 +739,14 @@ static struct ov5640_mode_info ov5640_mode_info_data[2][ov5640_mode_MAX + 1] = {
 		{ov5640_mode_XGA_1024_768, SUBSAMPLING, 1024, 768,
 		ov5640_setting_15fps_XGA_1024_768,
 		ARRAY_SIZE(ov5640_setting_15fps_XGA_1024_768)},
+
+		// Custom modes :D
+		{ov5640_mode_QSXGA_RAW, SCALING, 2592, 1944,
+		ov5640_setting_15fps_QSXGA_RAW,
+		ARRAY_SIZE(ov5640_setting_15fps_QSXGA_RAW)},
 	},
 	{
+		// 30 FPS modes
 		{ov5640_mode_VGA_640_480, SUBSAMPLING, 640,  480,
 		ov5640_setting_30fps_VGA_640_480,
 		ARRAY_SIZE(ov5640_setting_30fps_VGA_640_480)},
@@ -789,6 +772,8 @@ static struct ov5640_mode_info ov5640_mode_info_data[2][ov5640_mode_MAX + 1] = {
 		{ov5640_mode_XGA_1024_768, SUBSAMPLING, 1024, 768,
 		ov5640_setting_30fps_XGA_1024_768,
 		ARRAY_SIZE(ov5640_setting_30fps_XGA_1024_768)},
+
+		{ov5640_mode_QSXGA_RAW, -1, 0, 0, NULL, 0},
 	},
 };
 
@@ -1076,7 +1061,7 @@ int OV5640_set_shutter(int shutter)
 {
 	
 	pr_err("The driver tried to set the shutter >:L\n");
-	return 0; // we're doing this manually now
+	//return 0; // we're doing this manually now
 
 	 /* write shutter, in number of line period */
 	 int temp;
@@ -1112,7 +1097,7 @@ int OV5640_get_gain16(void)
 int OV5640_set_gain16(int gain16)
 {
 	pr_err("The driver tried to set the gain >:L\n");
-	return 0; // we're doing this manually now
+	//return 0; // we're doing this manually now
 
 	/* write gain, 16 = 1x */
 	u8 temp;
@@ -1153,6 +1138,7 @@ int OV5640_get_light_freq(void)
 			light_freq = 50;
 		} else {
 			/* 60Hz */
+			light_freq = 60;
 		}
 	}
 	return light_freq;
@@ -1215,7 +1201,7 @@ int OV5640_set_AE_target(int target)
 void OV5640_turn_on_AE_AG(int enable)
 {
 	pr_err("The driver tried to adjust AE/AG settings\n");
-	return 0; // we're doing these manually now
+	//return 0; // we're doing these manually now
 	
 	u8 ae_ag_ctrl;
 
@@ -1550,18 +1536,18 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 	//	MIPI camera works only on virtual channel zero
 	ov5640_set_virtual_channel(0);
 
-	/* add delay to wait for sensor stable */
-	if (mode == ov5640_mode_QSXGA_2592_1944) {
-		/* dump the first two frames: 1/7.5*2
-		 * the frame rate of QSXGA is 7.5fps */
-		msec_wait4stable = 267;
-	} else if (frame_rate == ov5640_15_fps) {
-		/* dump the first nine frames: 1/15*9 */
-		msec_wait4stable = 600;
-	} else if (frame_rate == ov5640_30_fps) {
-		/* dump the first nine frames: 1/30*9 */
-		msec_wait4stable = 300;
-	}
+//	/* add delay to wait for sensor stable */
+//	if (mode == ov5640_mode_QSXGA_2592_1944) {
+//		/* dump the first two frames: 1/7.5*2
+//		 * the frame rate of QSXGA is 7.5fps */
+//		msec_wait4stable = 267;
+//	} else if (frame_rate == ov5640_15_fps) {
+//		/* dump the first nine frames: 1/15*9 */
+//		msec_wait4stable = 600;
+//	} else if (frame_rate == ov5640_30_fps) {
+//		/* dump the first nine frames: 1/30*9 */
+//		msec_wait4stable = 300;
+//	}
 	//DISABLED WAIT FOR PERFORMANCE :D
 	//msleep(msec_wait4stable);
 
