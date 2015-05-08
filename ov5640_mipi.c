@@ -617,39 +617,6 @@ static struct reg_value ov5640_setting_15fps_QSXGA_2592_1944[] = {
 	{0x3a0d, 0x04, 0, 0}, // AEC CTRL0D (60Hz max bands in one frame)
 	{0x3a14, 0x03, 0, 0}, {0x3a15, 0xd8, 0, 0}, // 50Hz maximum exposure output limit
 
-//	//===========================================================================-
-//	//===========================================================================-
-//	// MANUAL EXPOSURE AND GAIN CONTROL
-//	{0x3503, 0x03, 0, 0}, // Set exposure and gain to manual mode
-//
-//	// Exposure[19:0] is in 1/16ths of a line.
-//	// For example, if we set:
-//	//    0x3500=0x00, 0x3501=0x01, 0x3502=0x00
-//	// we would get an exposure of 16 lines.
-//	// As an additional note, Exposure[3:0] should be zero, as fractional lines are not supported
-//
-//	// 10 milliseconds at 1944 rows, 15 fps is 1944*15*0.01 = 292 rows
-//	//    292*16 >> 16 = 0, so set 0x3500 to 0x00
-//	//    (292*16 >> 8) & 0xFF = 18, so set 0x3501 to 18, or 0x12
-//	//    292*16 & 0xFF = 64, so set 0x3502 to 64, or 0x40
-//	{0x3500, 0x00, 0, 0 }, // Bits[3:0] are Exposure[19:16]
-//	{0x3501, 0x12, 0, 0 }, // Bits[7:0] are Exposure[15:8]
-//	{0x3502, 0x40, 0, 0 }, // Bits[7:0] are Exposure[7:0]
-//
-//	// These settings are used if we want to expose over multiple frames
-//	{0x350C, 0x00, 0, 0}, // Extra exposure [15:8] - whole frames
-//	{0x350D, 0x00, 0, 0}, // Extra exposure [7:0] - whole frames
-//
-//	// Gain[9:0] is gain/16, and has a maximum of 64x
-//	// For example, for the unity gain (1x), we set:
-//	//    0x350A=0x00, 0x350B=0x10
-//
-//	// Gain of 4x
-//	{0x350A, 0x00, 0, 0}, // Bits[1:0] are Gain[9:8]
-//	{0x350B, 0x40, 0, 0}, // Bits[7:0] are Gain[7:0]
-//	//===========================================================================-
-//	//===========================================================================-
-		  
 	// BLC control
 	{0x4001, 0x02, 0, 0}, // BLC CTRL01 (BLC start line)
 	{0x4004, 0x06, 0, 0}, // BLC CTRL04 (BLC line number)
@@ -697,15 +664,8 @@ static struct reg_value ov5640_setting_15fps_QSXGA_RAW[] = {
 	{0x3824, 0x01, 0, 0}, {0x5001, 0x83, 0, 70},
 
 	{0x5000, 0x06, 0, 0}, // Disable CIP
-
-	{0x4300, 0x30, 0, 0}, // Output data format: YUV422: YUYV
-	//{0x4300, 0x60, 0, 0}, // RGB565 format // buffer timeout
-	//{0x4300, 0xF8, 0, 0}, // Raw Bayer output // buffer timeout
-
+	{0x4300, 0x30, 0, 0}, // Output data format: YUV422 (YUYV)
 	{0x501F, 0x03, 0, 0}, // ISP Format: ISP RAW (DPC)
-	//{0x501F, 0x04, 0, 0}, // ISP Format: SNR RAW // This one doesn't work - buffer timeout
-	//{0x501F, 0x05, 0, 0}, // ISP Format: ISP RAW (CIP)
-	//{0x501f, 0x00, 0, 0}, // ISP Format: YUV422
 
 	{0x4202, 0x00, 0, 0},	/* stream on the sensor */
 };
@@ -1061,8 +1021,7 @@ int OV5640_get_shutter(void)
 int OV5640_set_shutter(int shutter)
 {
 	
-	pr_err("The driver tried to set the shutter >:L\n");
-	//return 0; // we're doing this manually now
+	printk("OV5640: Exposure=%d\n", shutter);
 
 	 /* write shutter, in number of line period */
 	 int temp;
@@ -1097,8 +1056,7 @@ int OV5640_get_gain16(void)
 
 int OV5640_set_gain16(int gain16)
 {
-	pr_err("The driver tried to set the gain >:L\n");
-	//return 0; // we're doing this manually now
+	printk("OV5640: Gain=%d\n", gain16);
 
 	/* write gain, 16 = 1x */
 	u8 temp;
@@ -1201,18 +1159,15 @@ int OV5640_set_AE_target(int target)
 
 void OV5640_turn_on_AE_AG(int enable)
 {
-	pr_err("The driver tried to adjust AE/AG settings\n");
-	//return 0; // we're doing these manually now
-	
 	u8 ae_ag_ctrl;
 
 	ov5640_read_reg(0x3503, &ae_ag_ctrl);
 	if (enable) {
-		pr_err("The driver enabled auto gain/exposure >:L\n");
+		pr_info("OV5640: AGC/AEC Enabled\n");
 		/* turn on auto AE/AG */
 		ae_ag_ctrl = ae_ag_ctrl & ~(0x03);
 	} else {
-		pr_err("The driver disabled auto gain/exposure? :0\n");
+		pr_info("OV5640: AGC/AEC Disabled\n");
 		/* turn off AE/AG */
 		ae_ag_ctrl = ae_ag_ctrl | 0x03;
 	}
@@ -1237,6 +1192,7 @@ static void ov5640_set_virtual_channel(int channel)
 	ov5640_read_reg(0x4814, &channel_id);
 	channel_id &= ~(3 << 6);
 	ov5640_write_reg(0x4814, channel_id | (channel << 6));
+	pr_info("%s: virtual channel=%d\n", __func__, channel);
 }
 
 /* download ov5640 settings to sensor through i2c */
@@ -1945,6 +1901,14 @@ static int ioctl_queryctrl(struct v4l2_int_device *s, struct v4l2_queryctrl *qc)
 		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
 	case V4L2_CID_FOCUS_ABSOLUTE:
 		return v4l2_ctrl_query_fill(qc, 0, 255, 1, 0);
+
+	case V4L2_CID_EXPOSURE:
+		return v4l2_ctrl_query_fill(qc, 0, 0xFFFFF, 1, 0);
+	case V4L2_CID_AUTOGAIN:
+		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 1); // 1 for AGC/AEC
+	case V4L2_CID_GAIN:
+		return v4l2_ctrl_query_fill(qc, 0, 0xFFFF, 1, 0);
+
 	}
 	return -EINVAL;
 }
@@ -2013,10 +1977,16 @@ static int ioctl_g_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		vc->value = ov5640_data.blue;
 		break;
 	case V4L2_CID_EXPOSURE:
-		vc->value = ov5640_data.ae_mode;
+		vc->value = OV5640_get_shutter();
 		break;
 	case V4L2_CID_FOCUS_ABSOLUTE:
 		vc->value = ov5640_data.focus_step;
+		break;
+	case V4L2_CID_GAIN:
+		vc->value = OV5640_get_gain16();
+		break;
+	case V4L2_CID_AUTOGAIN:
+		vc->value = ov5640_data.ae_mode;
 		break;
 	default:
 		ret = -EINVAL;
@@ -2408,12 +2378,18 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		break;
 	case V4L2_CID_GAMMA:
 		break;
+
 	case V4L2_CID_EXPOSURE:
+		OV5640_set_shutter(vc->value);
 		break;
 	case V4L2_CID_AUTOGAIN:
+		OV5640_turn_on_AE_AG(vc->value);
+		ov5640_data.ae_mode = vc->value;
 		break;
 	case V4L2_CID_GAIN:
+		OV5640_set_gain16(vc->value);
 		break;
+
 	default:
 		retval = -EPERM;
 		break;
