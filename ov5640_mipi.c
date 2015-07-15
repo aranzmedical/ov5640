@@ -33,9 +33,12 @@
 #include <linux/fsl_devices.h>
 #include <linux/mipi_csi2.h>
 #include <media/v4l2-chip-ident.h>
-#include "v4l2-int-device.h"
 #include "mxc_v4l2_capture.h"
 #include "ov5640.h"
+
+// ummmmm... we can do this because it isn't really a module so much as a bunch
+// of IOCTLs to V4L2, and we need to have its code linked in for this module to work
+#include "v4l2-int-device.c" 
 
 #define OV5640_VOLTAGE_ANALOG               2800000
 #define OV5640_VOLTAGE_DIGITAL_CORE         1500000
