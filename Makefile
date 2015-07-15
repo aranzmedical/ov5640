@@ -1,5 +1,5 @@
-ov5640_camera_mipi-objs := ov5640_mipi.o
-obj-m += ov5640_camera_mipi.o
+aranz_ov5640_camera_mipi-objs := ov5640_mipi.o
+obj-m += aranz_ov5640_camera_mipi.o
 SRC := $(shell pwd)
 
 all:
