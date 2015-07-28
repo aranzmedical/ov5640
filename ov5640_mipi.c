@@ -2901,5 +2901,5 @@ module_exit(ov5640_clean);
 MODULE_AUTHOR("Freescale Semiconductor, Inc.");
 MODULE_DESCRIPTION("OV5640 MIPI Camera Driver (ARANZ)");
 MODULE_LICENSE("GPL");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.0.1");
 MODULE_ALIAS("CSI");
