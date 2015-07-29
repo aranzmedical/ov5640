@@ -106,9 +106,15 @@ struct reg_value {
 	u32 u32Delay_ms;
 };
 
+struct ov5640_fmt_info {
+	u32 pixelformat;
+	char description[32];
+};
+
 struct ov5640_mode_info {
 	enum ov5640_mode mode;
 	enum ov5640_downsize_mode dn_mode;
+	u32 pixelformat;
 	u32 width;
 	u32 height;
 	struct reg_value *init_data_ptr;
@@ -675,71 +681,78 @@ static struct reg_value ov5640_setting_15fps_QSXGA_RAW[] = {
 	{0x4202, 0x00, 0, 0},	/* stream on the sensor */
 };
 
+static struct ov5640_fmt_info ov5640_supported_fmts[] = {
+	{ V4L2_PIX_FMT_UYVY, "UYVY" },
+	{ V4L2_PIX_FMT_SBGGR8, "RAW 8-bit BGGR" },
+};
+
 static struct ov5640_mode_info ov5640_mode_info_data[2][ov5640_mode_MAX + 1] = {
 	{
 		// 15FPS modes
-		{ov5640_mode_VGA_640_480, SUBSAMPLING, 640,  480,
+		{ov5640_mode_VGA_640_480, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 640,  480,
 		ov5640_setting_15fps_VGA_640_480,
 		ARRAY_SIZE(ov5640_setting_15fps_VGA_640_480)},
-		{ov5640_mode_QVGA_320_240, SUBSAMPLING, 320,  240,
+		{ov5640_mode_QVGA_320_240, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 320,  240,
 		ov5640_setting_15fps_QVGA_320_240,
 		ARRAY_SIZE(ov5640_setting_15fps_QVGA_320_240)},
-		{ov5640_mode_NTSC_720_480, SUBSAMPLING, 720, 480,
+		{ov5640_mode_NTSC_720_480, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 720, 480,
 		ov5640_setting_15fps_NTSC_720_480,
 		ARRAY_SIZE(ov5640_setting_15fps_NTSC_720_480)},
-		{ov5640_mode_PAL_720_576, SUBSAMPLING, 720, 576,
+		{ov5640_mode_PAL_720_576, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 720, 576,
 		ov5640_setting_15fps_PAL_720_576,
 		ARRAY_SIZE(ov5640_setting_15fps_PAL_720_576)},
-		{ov5640_mode_720P_1280_720, SUBSAMPLING, 1280, 720,
+		{ov5640_mode_720P_1280_720, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 1280, 720,
 		ov5640_setting_15fps_720P_1280_720,
 		ARRAY_SIZE(ov5640_setting_15fps_720P_1280_720)},
-		{ov5640_mode_1080P_1920_1080, SCALING, 1920, 1080,
+		{ov5640_mode_1080P_1920_1080, SCALING, V4L2_PIX_FMT_UYVY, 1920, 1080,
 		ov5640_setting_15fps_1080P_1920_1080,
 		ARRAY_SIZE(ov5640_setting_15fps_1080P_1920_1080)},
-		{ov5640_mode_QSXGA_2592_1944, SCALING, 2592, 1944,
+		{ov5640_mode_QSXGA_2592_1944, SCALING, V4L2_PIX_FMT_UYVY, 2592, 1944,
 		ov5640_setting_15fps_QSXGA_2592_1944,
 		ARRAY_SIZE(ov5640_setting_15fps_QSXGA_2592_1944)},
-		{ov5640_mode_QCIF_176_144, SUBSAMPLING, 176, 144,
+		{ov5640_mode_QCIF_176_144, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 176, 144,
 		ov5640_setting_15fps_QCIF_176_144,
 		ARRAY_SIZE(ov5640_setting_15fps_QCIF_176_144)},
-		{ov5640_mode_XGA_1024_768, SUBSAMPLING, 1024, 768,
+		{ov5640_mode_XGA_1024_768, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 1024, 768,
 		ov5640_setting_15fps_XGA_1024_768,
 		ARRAY_SIZE(ov5640_setting_15fps_XGA_1024_768)},
 
-		// Custom modes :D
-		{ov5640_mode_QSXGA_RAW, SCALING, 2592, 1944,
+		// RAW Bayer Mode (15FPS)
+		{ov5640_mode_QSXGA_RAW, SCALING, V4L2_PIX_FMT_UYVY, 2592, 1944,
 		ov5640_setting_15fps_QSXGA_RAW,
 		ARRAY_SIZE(ov5640_setting_15fps_QSXGA_RAW)},
+		// TODO: Proper bayer format, not pseudo-bayer forced into a UYVY frame!
+		// If using bayer, use V4L2_PIX_FMT_SBGGR8 as the pixelformat
 	},
 	{
 		// 30 FPS modes
-		{ov5640_mode_VGA_640_480, SUBSAMPLING, 640,  480,
+		{ov5640_mode_VGA_640_480, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 640,  480,
 		ov5640_setting_30fps_VGA_640_480,
 		ARRAY_SIZE(ov5640_setting_30fps_VGA_640_480)},
-		{ov5640_mode_QVGA_320_240, SUBSAMPLING, 320,  240,
+		{ov5640_mode_QVGA_320_240, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 320,  240,
 		ov5640_setting_30fps_QVGA_320_240,
 		ARRAY_SIZE(ov5640_setting_30fps_QVGA_320_240)},
-		{ov5640_mode_NTSC_720_480, SUBSAMPLING, 720, 480,
+		{ov5640_mode_NTSC_720_480, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 720, 480,
 		ov5640_setting_30fps_NTSC_720_480,
 		ARRAY_SIZE(ov5640_setting_30fps_NTSC_720_480)},
-		{ov5640_mode_PAL_720_576, SUBSAMPLING, 720, 576,
+		{ov5640_mode_PAL_720_576, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 720, 576,
 		ov5640_setting_30fps_PAL_720_576,
 		ARRAY_SIZE(ov5640_setting_30fps_PAL_720_576)},
-		{ov5640_mode_720P_1280_720, SUBSAMPLING, 1280, 720,
+		{ov5640_mode_720P_1280_720, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 1280, 720,
 		ov5640_setting_30fps_720P_1280_720,
 		ARRAY_SIZE(ov5640_setting_30fps_720P_1280_720)},
-		{ov5640_mode_1080P_1920_1080, SCALING, 1920, 1080,
+		{ov5640_mode_1080P_1920_1080, SCALING, V4L2_PIX_FMT_UYVY, 1920, 1080,
 		ov5640_setting_30fps_1080P_1920_1080,
 		ARRAY_SIZE(ov5640_setting_30fps_1080P_1920_1080)},
-		{ov5640_mode_QSXGA_2592_1944, -1, 0, 0, NULL, 0},
-		{ov5640_mode_QCIF_176_144, SUBSAMPLING, 176, 144,
+		{ov5640_mode_QSXGA_2592_1944, -1, V4L2_PIX_FMT_UYVY, 0, 0, NULL, 0}, // 5MP cannot do 30FPS
+		{ov5640_mode_QCIF_176_144, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 176, 144,
 		ov5640_setting_30fps_QCIF_176_144,
 		ARRAY_SIZE(ov5640_setting_30fps_QCIF_176_144)},
-		{ov5640_mode_XGA_1024_768, SUBSAMPLING, 1024, 768,
+		{ov5640_mode_XGA_1024_768, SUBSAMPLING, V4L2_PIX_FMT_UYVY, 1024, 768,
 		ov5640_setting_30fps_XGA_1024_768,
 		ARRAY_SIZE(ov5640_setting_30fps_XGA_1024_768)},
 
-		{ov5640_mode_QSXGA_RAW, -1, 0, 0, NULL, 0},
+		{ov5640_mode_QSXGA_RAW, -1, V4L2_PIX_FMT_UYVY, 0, 0, NULL, 0}, // 5MP cannot do 30FPS
 	},
 };
 
@@ -1282,12 +1295,14 @@ static int ov5640_change_mode_exposure_calc(enum ov5640_frame_rate frame_rate,
 	ArySize =
 		ov5640_mode_info_data[frame_rate][mode].init_data_size;
 
+	ov5640_data.pix.pixelformat =
+		ov5640_mode_info_data[frame_rate][mode].pixelformat;
 	ov5640_data.pix.width =
 		ov5640_mode_info_data[frame_rate][mode].width;
 	ov5640_data.pix.height =
 		ov5640_mode_info_data[frame_rate][mode].height;
 
-	if (ov5640_data.pix.width == 0 || ov5640_data.pix.height == 0 ||
+	if (ov5640_data.pix.pixelformat == 0 || ov5640_data.pix.width == 0 || ov5640_data.pix.height == 0 ||
 		pModeSetting == NULL || ArySize == 0)
 		return -EINVAL;
 
@@ -1409,12 +1424,14 @@ static int ov5640_change_mode_direct(enum ov5640_frame_rate frame_rate,
 	ArySize =
 		ov5640_mode_info_data[frame_rate][mode].init_data_size;
 
+	ov5640_data.pix.pixelformat =
+		ov5640_mode_info_data[frame_rate][mode].pixelformat;
 	ov5640_data.pix.width =
 		ov5640_mode_info_data[frame_rate][mode].width;
 	ov5640_data.pix.height =
 		ov5640_mode_info_data[frame_rate][mode].height;
 
-	if (ov5640_data.pix.width == 0 || ov5640_data.pix.height == 0 ||
+	if (ov5640_data.pix.pixelformat == 0 || ov5640_data.pix.width == 0 || ov5640_data.pix.height == 0 ||
 		pModeSetting == NULL || ArySize == 0)
 		return -EINVAL;
 
@@ -1475,12 +1492,19 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 	if (mode == ov5640_mode_INIT)
 		mipi_csi2_reset(mipi_csi2_info);
 
-	if (ov5640_data.pix.pixelformat == V4L2_PIX_FMT_UYVY)
-		mipi_csi2_set_datatype(mipi_csi2_info, MIPI_DT_YUV422);
-	else if (ov5640_data.pix.pixelformat == V4L2_PIX_FMT_RGB565)
-		mipi_csi2_set_datatype(mipi_csi2_info, MIPI_DT_RGB565);
-	else
-		pr_err("currently this sensor format can not be supported!\n");
+	switch (ov5640_data.pix.pixelformat) {
+		case V4L2_PIX_FMT_UYVY:
+			mipi_csi2_set_datatype(mipi_csi2_info, MIPI_DT_YUV422);
+			break;
+		case V4L2_PIX_FMT_RGB565:
+			mipi_csi2_set_datatype(mipi_csi2_info, MIPI_DT_RGB565);
+			break;
+		case V4L2_PIX_FMT_SBGGR8:
+			mipi_csi2_set_datatype(mipi_csi2_info, MIPI_DT_RAW8);
+			break;
+		default:
+			pr_err("OV5640 sensor does not support this pixelformat!\n");
+	}
 
 	dn_mode = ov5640_mode_info_data[frame_rate][mode].dn_mode;
 	orig_dn_mode = ov5640_mode_info_data[frame_rate][orig_mode].dn_mode;
@@ -1488,6 +1512,7 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 		pModeSetting = ov5640_init_setting_30fps_VGA;
 		ArySize = ARRAY_SIZE(ov5640_init_setting_30fps_VGA);
 
+		ov5640_data.pix.pixelformat = V4L2_PIX_FMT_UYVY;
 		ov5640_data.pix.width = 640;
 		ov5640_data.pix.height = 480;
 		retval = ov5640_download_firmware(pModeSetting, ArySize);
@@ -2437,6 +2462,21 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 }
 
 /*!
+ * Check if the provided pixelformat is supported by this driver
+ *
+ * Returns 1 if supported, 0 otherwise
+ */
+static bool valid_pixfmt(u32 pixelformat)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(ov5640_supported_fmts); i++) {
+		if (pixelformat == ov5640_supported_fmts[i].pixelformat)
+			return 1;
+	}
+	return 0;
+}
+
+/*!
  * ioctl_enum_framesizes - V4L2 sensor interface handler for
  *			   VIDIOC_ENUM_FRAMESIZES ioctl
  * @s: pointer to standard V4L2 device structure
@@ -2447,17 +2487,47 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 static int ioctl_enum_framesizes(struct v4l2_int_device *s,
 				 struct v4l2_frmsizeenum *fsize)
 {
+	int i, count = 0;
+
 	if (fsize->index > ov5640_mode_MAX)
 		return -EINVAL;
 
-	fsize->pixel_format = ov5640_data.pix.pixelformat;
-	fsize->discrete.width =
-			max(ov5640_mode_info_data[0][fsize->index].width,
-			    ov5640_mode_info_data[1][fsize->index].width);
-	fsize->discrete.height =
-			max(ov5640_mode_info_data[0][fsize->index].height,
-			    ov5640_mode_info_data[1][fsize->index].height);
-	return 0;
+	// For backwards-compatibility with original mxc driver
+	if (fsize->pixel_format == 0) {
+		// NOTE: This is non-standard - pixelformat is being treated as an output instead of an input.
+		// We need to do this to ensure the software can know what 'mode'/index to use to configure the sensor,
+		// since we cannot configure it using V4L2_S_FMT!
+		fsize->pixel_format = ov5640_mode_info_data[0][fsize->index].pixelformat;
+		fsize->discrete.width =
+				max(ov5640_mode_info_data[0][fsize->index].width,
+				    ov5640_mode_info_data[1][fsize->index].width);
+		fsize->discrete.height =
+				max(ov5640_mode_info_data[0][fsize->index].height,
+				    ov5640_mode_info_data[1][fsize->index].height);
+		return 0;
+	}
+	else {
+		if (!valid_pixfmt(fsize->pixel_format))
+			return -EINVAL;
+
+		// Proper V4L2-standard query - only return framesizes matching the pixelformat
+		for (i = 0; i < (ov5640_mode_MAX + 1); i++) {
+			if (fsize->pixel_format == ov5640_mode_info_data[0][i].pixelformat) {
+				if (fsize->index == count++) {
+					fsize->discrete.width =
+							max(ov5640_mode_info_data[0][i].width,
+							    ov5640_mode_info_data[1][i].width);
+					fsize->discrete.height =
+							max(ov5640_mode_info_data[0][i].height,
+							    ov5640_mode_info_data[1][i].height);
+					fsize->index = i;
+					return 0;
+				}
+			}
+		}
+	}
+
+	return -EINVAL;
 }
 
 /*!
@@ -2478,7 +2548,7 @@ static int ioctl_enum_frameintervals(struct v4l2_int_device *s,
 
 	for (i = 0; i < ARRAY_SIZE(ov5640_mode_info_data); i++)
 		for (j = 0; j < (ov5640_mode_MAX + 1); j++)
-			if (fival->pixel_format == ov5640_data.pix.pixelformat
+			if (fival->pixel_format == ov5640_mode_info_data[i][j].pixelformat
 			 && fival->width == ov5640_mode_info_data[i][j].width
 			 && fival->height == ov5640_mode_info_data[i][j].height
 			 && ov5640_mode_info_data[i][j].init_data_ptr != NULL
@@ -2529,10 +2599,11 @@ static int ioctl_init(struct v4l2_int_device *s)
 static int ioctl_enum_fmt_cap(struct v4l2_int_device *s,
 			      struct v4l2_fmtdesc *fmt)
 {
-	if (fmt->index > ov5640_mode_MAX)
+	if (fmt->index > ARRAY_SIZE(ov5640_supported_fmts))
 		return -EINVAL;
 
-	fmt->pixelformat = ov5640_data.pix.pixelformat;
+	fmt->pixelformat = ov5640_supported_fmts[fmt->index].pixelformat;
+	memcpy(fmt->description, ov5640_supported_fmts[fmt->index].description, sizeof(fmt->description));
 
 	return 0;
 }
