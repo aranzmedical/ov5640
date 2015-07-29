@@ -1,4 +1,6 @@
 
+obj-m += mxc_v4l2_capture.o
+
 ov5640_camera_mipi-objs := ov5640_mipi.o
 obj-m += ov5640_camera_mipi.o
 SRC := $(shell pwd)
