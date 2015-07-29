@@ -2630,7 +2630,7 @@ static struct v4l2_int_ioctl_desc ov5640_ioctl_desc[] = {
 /*	{vidioc_int_s_fmt_cap_num, (v4l2_int_ioctl_func *) ioctl_s_fmt_cap}, */
 	{vidioc_int_g_parm_num, (v4l2_int_ioctl_func *) ioctl_g_parm},
 	{vidioc_int_s_parm_num, (v4l2_int_ioctl_func *) ioctl_s_parm},
-/*	{vidioc_int_queryctrl_num, (v4l2_int_ioctl_func *)ioctl_queryctrl}, */
+	{vidioc_int_queryctrl_num, (v4l2_int_ioctl_func *)ioctl_queryctrl},
 	{vidioc_int_g_ctrl_num, (v4l2_int_ioctl_func *) ioctl_g_ctrl},
 	{vidioc_int_s_ctrl_num, (v4l2_int_ioctl_func *) ioctl_s_ctrl},
 	{vidioc_int_enum_framesizes_num,
