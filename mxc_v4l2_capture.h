@@ -171,18 +171,10 @@ typedef struct _cam_data {
 	int hue;
 	int contrast;
 	int saturation;
-	int aw_mode;
-	int wb_temp;
-	int vflip;
-	int hflip;
-	int focus_step;
-	int effects;
-	int pattern;
 	int red;
 	int green;
 	int blue;
 	int ae_mode;
-	int sharpness;
 
 	/* standard */
 	struct v4l2_streamparm streamparm;
@@ -248,6 +240,16 @@ typedef struct _cam_data {
 	struct dma_async_tx_descriptor *txd;
 	dma_cookie_t cookie;
 	struct scatterlist sg[2];
+
+	/* Ext */
+	int aw_mode;
+	int wb_temp;
+	int vflip;
+	int hflip;
+	int focus_step;
+	int effects;
+	int pattern;
+	int sharpness;
 } cam_data;
 
 struct additional_data {
@@ -268,18 +270,10 @@ struct sensor_data {
 	int hue;
 	int contrast;
 	int saturation;
-	int aw_mode;
-	int wb_temp;
-	int vflip;
-	int hflip;
-	int focus_step;
-	int effects;
-	int pattern;
 	int red;
 	int green;
 	int blue;
 	int ae_mode;
-	int sharpness;
 
 	u32 mclk;
 	u8 mclk_source;
@@ -291,6 +285,16 @@ struct sensor_data {
 	unsigned virtual_channel;	/* Used with mipi */
 
 	void (*io_init)(void);
+
+	/* Ext */
+	int aw_mode;
+	int wb_temp;
+	int vflip;
+	int hflip;
+	int focus_step;
+	int effects;
+	int pattern;
+	int sharpness;
 };
 
 void set_mclk_rate(uint32_t *p_mclk_freq, uint32_t csi);
