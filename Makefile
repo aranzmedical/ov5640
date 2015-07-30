@@ -12,10 +12,10 @@
 # 	KERNEL_BUILD := <yocto-root>/build/tmp/work-shared/<machine>/kernel-build-artifacts
 #
 
-obj-m += mxc_v4l2_capture.o
+obj-$(OUT_OF_TREE_BUILD) += mxc_v4l2_capture.o
 
-ov5640_camera_mipi-objs := ov5640_mipi.o
-obj-m += ov5640_camera_mipi.o
+ov5640_camera_aranz-objs := ov5640_mipi.o
+obj-m += ov5640_camera_aranz.o
 
 SRC := $(shell pwd)
 
@@ -27,8 +27,8 @@ SRC := $(shell pwd)
 # See http://comments.gmane.org/gmane.linux.embedded.yocto.general/24484
 
 all:
-	cp -u $(KERNEL_BUILD)/Module.symvers .
-	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) O=$(KERNEL_BUILD) $(MAKE_OPTS) modules
+	cp -u $(KBUILD_OUTPUT)/Module.symvers .
+	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) O=$(KBUILD_OUTPUT) $(MAKE_OPTS) modules
 
 modules_install:
 	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) modules_install
