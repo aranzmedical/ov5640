@@ -2952,7 +2952,7 @@ static __init int ov5640_init(void)
 		pr_err("%s:driver registration failed, error=%d\n",
 			__func__, err);
 
-	return -ENODEV;
+	return err;
 }
 
 /*!
