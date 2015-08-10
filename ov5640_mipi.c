@@ -2489,40 +2489,37 @@ static int ioctl_enum_framesizes(struct v4l2_int_device *s,
 {
 	int i, count = 0;
 
-	if (fsize->index > ov5640_mode_MAX)
-		return -EINVAL;
+	pr_debug("ioctl_enum_framesizes: pixfmt=%.8x, index=%d\n", fsize->pixel_format, fsize->index);
 
-	// For backwards-compatibility with original mxc driver
-	if (fsize->pixel_format == 0) {
+	if (!valid_pixfmt(fsize->pixel_format)) {
 		// NOTE: This is non-standard - pixelformat is being treated as an output instead of an input.
 		// We need to do this to ensure the software can know what 'mode'/index to use to configure the sensor,
 		// since we cannot configure it using V4L2_S_FMT!
-		fsize->pixel_format = ov5640_mode_info_data[0][fsize->index].pixelformat;
+		fsize->pixel_format = ov5640_data.pix.pixelformat; // Return the currently-configured pixelformat
 		fsize->discrete.width =
 				max(ov5640_mode_info_data[0][fsize->index].width,
-				    ov5640_mode_info_data[1][fsize->index].width);
+					ov5640_mode_info_data[1][fsize->index].width);
 		fsize->discrete.height =
 				max(ov5640_mode_info_data[0][fsize->index].height,
-				    ov5640_mode_info_data[1][fsize->index].height);
+					ov5640_mode_info_data[1][fsize->index].height);
 		return 0;
 	}
-	else {
-		if (!valid_pixfmt(fsize->pixel_format))
-			return -EINVAL;
 
-		// Proper V4L2-standard query - only return framesizes matching the pixelformat
-		for (i = 0; i < (ov5640_mode_MAX + 1); i++) {
-			if (fsize->pixel_format == ov5640_mode_info_data[0][i].pixelformat) {
-				if (fsize->index == count++) {
-					fsize->discrete.width =
-							max(ov5640_mode_info_data[0][i].width,
-							    ov5640_mode_info_data[1][i].width);
-					fsize->discrete.height =
-							max(ov5640_mode_info_data[0][i].height,
-							    ov5640_mode_info_data[1][i].height);
-					fsize->index = i;
-					return 0;
-				}
+	if (fsize->index > ov5640_mode_MAX)
+		return -EINVAL;
+
+	// Proper V4L2-standard query - only return framesizes matching the pixelformat
+	for (i = 0; i < (ov5640_mode_MAX + 1); i++) {
+		if (fsize->pixel_format == ov5640_mode_info_data[0][i].pixelformat) {
+			if (fsize->index == count++) {
+				fsize->discrete.width =
+						max(ov5640_mode_info_data[0][i].width,
+							ov5640_mode_info_data[1][i].width);
+				fsize->discrete.height =
+						max(ov5640_mode_info_data[0][i].height,
+							ov5640_mode_info_data[1][i].height);
+				fsize->index = i;
+				return 0;
 			}
 		}
 	}
