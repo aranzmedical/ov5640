@@ -1031,16 +1031,16 @@ static int mxc_v4l2_g_ctrl(cam_data *cam, struct v4l2_control *c)
 	/* probably don't need to store the values that can be retrieved,
 	 * locally, but they are for now. */
 	switch (c->id) {
-	case V4L2_CID_HFLIP:
-		/* This is handled in the ipu. */
-		if (cam->rotation == IPU_ROTATE_HORIZ_FLIP)
-			c->value = 1;
-		break;
-	case V4L2_CID_VFLIP:
-		/* This is handled in the ipu. */
-		if (cam->rotation == IPU_ROTATE_VERT_FLIP)
-			c->value = 1;
-		break;
+//	case V4L2_CID_HFLIP:
+//		/* This is handled in the ipu. */
+//		if (cam->rotation == IPU_ROTATE_HORIZ_FLIP)
+//			c->value = 1;
+//		break;
+//	case V4L2_CID_VFLIP:
+//		/* This is handled in the ipu. */
+//		if (cam->rotation == IPU_ROTATE_VERT_FLIP)
+//			c->value = 1;
+//		break;
 	case V4L2_CID_MXC_ROT:
 		/* This is handled in the ipu. */
 		c->value = cam->rotation;
@@ -1220,36 +1220,36 @@ static int mxc_v4l2_s_ctrl(cam_data *cam, struct v4l2_control *c)
 	pr_debug("%s\n", __func__);
 
 	switch (c->id) {
-	case V4L2_CID_HFLIP:
-		/* This is done by the IPU */
-		if (c->value == 1) {
-			if ((cam->rotation != IPU_ROTATE_VERT_FLIP) &&
-			    (cam->rotation != IPU_ROTATE_180))
-				cam->rotation = IPU_ROTATE_HORIZ_FLIP;
-			else
-				cam->rotation = IPU_ROTATE_180;
-		} else {
-			if (cam->rotation == IPU_ROTATE_HORIZ_FLIP)
-				cam->rotation = IPU_ROTATE_NONE;
-			if (cam->rotation == IPU_ROTATE_180)
-				cam->rotation = IPU_ROTATE_VERT_FLIP;
-		}
-		break;
-	case V4L2_CID_VFLIP:
-		/* This is done by the IPU */
-		if (c->value == 1) {
-			if ((cam->rotation != IPU_ROTATE_HORIZ_FLIP) &&
-			    (cam->rotation != IPU_ROTATE_180))
-				cam->rotation = IPU_ROTATE_VERT_FLIP;
-			else
-				cam->rotation = IPU_ROTATE_180;
-		} else {
-			if (cam->rotation == IPU_ROTATE_VERT_FLIP)
-				cam->rotation = IPU_ROTATE_NONE;
-			if (cam->rotation == IPU_ROTATE_180)
-				cam->rotation = IPU_ROTATE_HORIZ_FLIP;
-		}
-		break;
+//	case V4L2_CID_HFLIP:
+//		/* This is done by the IPU */
+//		if (c->value == 1) {
+//			if ((cam->rotation != IPU_ROTATE_VERT_FLIP) &&
+//			    (cam->rotation != IPU_ROTATE_180))
+//				cam->rotation = IPU_ROTATE_HORIZ_FLIP;
+//			else
+//				cam->rotation = IPU_ROTATE_180;
+//		} else {
+//			if (cam->rotation == IPU_ROTATE_HORIZ_FLIP)
+//				cam->rotation = IPU_ROTATE_NONE;
+//			if (cam->rotation == IPU_ROTATE_180)
+//				cam->rotation = IPU_ROTATE_VERT_FLIP;
+//		}
+//		break;
+//	case V4L2_CID_VFLIP:
+//		/* This is done by the IPU */
+//		if (c->value == 1) {
+//			if ((cam->rotation != IPU_ROTATE_HORIZ_FLIP) &&
+//			    (cam->rotation != IPU_ROTATE_180))
+//				cam->rotation = IPU_ROTATE_VERT_FLIP;
+//			else
+//				cam->rotation = IPU_ROTATE_180;
+//		} else {
+//			if (cam->rotation == IPU_ROTATE_VERT_FLIP)
+//				cam->rotation = IPU_ROTATE_NONE;
+//			if (cam->rotation == IPU_ROTATE_180)
+//				cam->rotation = IPU_ROTATE_HORIZ_FLIP;
+//		}
+//		break;
 	case V4L2_CID_MXC_ROT:
 	case V4L2_CID_MXC_VF_ROT:
 		/* This is done by the IPU */
