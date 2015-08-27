@@ -2246,9 +2246,9 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		if ((vc->value >= 0) && (vc->value <= 1)) {
 			ov5640_read_reg(0x3821, &reg_value);
 			if (vc->value) {
-				reg_value |= 0x06;
-			}else {
 				reg_value &= ~(0x06);
+			}else {
+				reg_value |= 0x06;
 			}
 			ov5640_write_reg(0x3821, reg_value);
 			ov5640_data.hflip = vc->value;
