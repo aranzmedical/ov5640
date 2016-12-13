@@ -1873,6 +1873,7 @@ static int mxc_v4l_dqueue(cam_data *cam, struct v4l2_buffer *buf)
 	buf->m = cam->frame[frame->index].buffer.m;
 	buf->timestamp = cam->frame[frame->index].buffer.timestamp;
 	buf->field = cam->frame[frame->index].buffer.field;
+	buf->sequence = cam->frame[frame->index].buffer.sequence;
 	spin_unlock_irqrestore(&cam->dqueue_int_lock, lock_flags);
 
 	up(&cam->busy_lock);
