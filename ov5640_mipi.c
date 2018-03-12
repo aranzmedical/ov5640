@@ -1279,6 +1279,8 @@ err:
 static int ov5640_change_mode_exposure_calc(enum ov5640_frame_rate frame_rate,
 				enum ov5640_mode mode)
 {
+  printk("ov5640_mipi::ov5640_change_mode_exposure_calc\n");
+
 	struct reg_value *pModeSetting = NULL;
 	s32 ArySize = 0;
 	u8 average;
@@ -2489,7 +2491,8 @@ static int ioctl_enum_framesizes(struct v4l2_int_device *s,
 {
 	int i, count = 0;
 
-	pr_debug("ioctl_enum_framesizes: pixfmt=%.8x, index=%d\n", fsize->pixel_format, fsize->index);
+  printk("ov5640_mipi::ioctl_enum_framesizes\n");
+	printk("ioctl_enum_framesizes: pixfmt=%.8x, index=%d\n", fsize->pixel_format, fsize->index);
 
 	if (!valid_pixfmt(fsize->pixel_format)) {
 		// NOTE: This is non-standard - pixelformat is being treated as an output instead of an input.
@@ -2542,6 +2545,8 @@ static int ioctl_enum_frameintervals(struct v4l2_int_device *s,
 
 	fival->type = V4L2_FRMIVAL_TYPE_DISCRETE;
 	fival->discrete.numerator = 1;
+
+  printk("ov5640_mipi::ioctl_enum_frameintervals\n");
 
 	for (i = 0; i < ARRAY_SIZE(ov5640_mode_info_data); i++)
 		for (j = 0; j < (ov5640_mode_MAX + 1); j++)
