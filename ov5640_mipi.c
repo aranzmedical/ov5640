@@ -892,9 +892,9 @@ static s32 ov5640_write_reg(u16 reg, u8 val)
 	au8Buf[1] = reg & 0xff;
 	au8Buf[2] = val;
 
-	if (i2c_master_send(ov5640_data.i2c_client, au8Buf, 3) < 0) {
-		pr_err("%s:write reg error:reg=%x,val=%x\n",
-			__func__, reg, val);
+	if (i2c_master_send(ov5640_data.i2c_client, au8Buf, 3) < 0) 
+  {
+		pr_err("%s:write reg error:reg=%x,val=%x\n", __func__, reg, val);
 		return -1;
 	}
 	pr_debug("reg=%x,val=%x\n", reg, val);
@@ -1855,16 +1855,8 @@ static int ioctl_g_fmt_cap(struct v4l2_int_device *s, struct v4l2_format *f)
 {
 	struct sensor_data *sensor = s->priv;
 
-  
-
-  ov5640_write_reg(0x3016, 0x02);
-  ov5640_write_reg(0x301C, 0x00);
-  ov5640_write_reg(0x3A1C, 0x00);
-  ov5640_write_reg(0x3A1D, 0x00);
-  ov5640_write_reg(0x3B07, 0x03);
-  ov5640_write_reg(0x3B00, 0x81);
-
-	switch (f->type) {
+	switch (f->type) 
+  {
 	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
 		f->fmt.pix = sensor->pix;
 		pr_debug("%s: %dx%d\n", __func__, sensor->pix.width, sensor->pix.height);
@@ -2145,10 +2137,12 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	u8 reg_value = 0;
 	unsigned char status,i;
 
-  printk(KERN_ALERT "ov5640_mipi:ioctl_s_ctrl %d\n", vc->id);
 	pr_debug("In ov5640:ioctl_s_ctrl %d\n", vc->id);
 
-	if (vc->id & V4L2_CID_REGISTERS_BASE) {
+	if (vc->id & V4L2_CID_REGISTERS_BASE) 
+  {
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_REGISTERS_BASE\n");
+
 		uint16_t addr = vc->id & 0x0000FFFF;
 		if (addr == 0)
 			return -EINVAL;
@@ -2161,6 +2155,8 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	switch (vc->id) {
 	case V4L2_CID_BRIGHTNESS:
 	{
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_BRIGHTNESS\n");
+
 		if ((vc->value >= -64) && (vc->value <= 64)) {
 			WRITE_REG_WITH_OVT_MAST(0x5001, 0x80, 0x80);
 			WRITE_REG_WITH_OVT_MAST(0x5580, 0x04, 0x04);
@@ -2178,6 +2174,8 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_CONTRAST:
 	{
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_CONTRAST\n");
+
 		if ((vc->value >= -12) && (vc->value <= 12)) {
 			WRITE_REG_WITH_OVT_MAST(0x5001, 0x80, 0x80);
 			WRITE_REG_WITH_OVT_MAST(0x5580, 0x04, 0x04);
@@ -2189,6 +2187,8 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_SATURATION:
 	{
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_SATURATION\n");
+
 		if ((vc->value >= -48) && (vc->value <= 48)) {
 			WRITE_REG_WITH_OVT_MAST(0x5580, 0x02, 0x1A);
 			WRITE_REG_WITH_OVT_MAST(0x5588, 0x40, 0x40);
@@ -2202,6 +2202,8 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_HUE:
 	{
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_HUE\n");
+
 		vc->value -= (vc->value % 30);
 		if((vc->value >= -180) && (vc->value <= 150))
 		{
@@ -2300,6 +2302,8 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_AUTO_WHITE_BALANCE:
 	{
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_AUTO_WHITE_BALANCE\n");
+
 		if (vc->value)
 			vc->value = 1;
 		else
@@ -2308,14 +2312,19 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		ov5640_data.aw_mode = vc->value;
 		return planckian_locus_lookuptable(vc->value);
 	}break;
-	case V4L2_CID_WHITE_BALANCE_TEMPERATURE: {
+	case V4L2_CID_WHITE_BALANCE_TEMPERATURE: 
+  {
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_WHITE_BALANCE_TEMPERATURE\n");
+
 		if ((vc->value >=3000) && (vc->value <=6000)) {
 			ov5640_data.wb_temp = vc->value;
 			vc->value -= vc->value%1000;
 			return planckian_locus_lookuptable(vc->value);
 		}
 	}break;
-	case V4L2_CID_HFLIP: {
+	case V4L2_CID_HFLIP: 
+  {
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_HFLIP\n");
 		if ((vc->value >= 0) && (vc->value <= 1)) {
 			ov5640_read_reg(0x3821, &reg_value);
 			if (vc->value) {
@@ -2328,7 +2337,9 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		}
 		return 0;
 	}break;
-	case V4L2_CID_VFLIP: {
+	case V4L2_CID_VFLIP: 
+  {
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_VFLIP\n");
 		if ((vc->value >= 0) && (vc->value <= 1) ) {
 			ov5640_read_reg(0x3820, &reg_value);
 	
@@ -2343,7 +2354,9 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		return 0;
 	}break;
 	
-	case V4L2_CID_FOCUS_TRIGGER: {
+	case V4L2_CID_FOCUS_TRIGGER: 
+  {
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_FOCUS_TRIGGER\n");
 		//unsigned char status,i;
 
 		ov5640_write_reg(0x3023, 0x01);     
@@ -2374,6 +2387,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	
 	case V4L2_CID_AUTO_FOCUS_START: /* Continuous AF Start*/
 		//unsigned char i,status;
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_AUTO_FOCUS_START\n");
 		printk("V4L2_CID_AUTO_FOCUS_START \n");
 
 		ov5640_write_reg(0x3023, 0x01);        //Enable Continuous Focus
@@ -2392,6 +2406,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		break;
 	case V4L2_CID_AUTO_FOCUS_STOP: /* Continuous AF Stop*/
 		//unsigned char i,status;
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_AUTO_FOCUS_STOP\n");
 		printk("V4L2_CID_AUTO_FOCUS_STOP \n");
 
 		ov5640_write_reg(0x3023, 0x01);     //Release Continuous Focus
@@ -2410,6 +2425,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	
 	case V4L2_CID_FOCUS_ABSOLUTE: 
 		/* Enter manual focus stub */
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_FOCUS_ABSOLUTE\n");
 		if ((vc->value >= 0) && (vc->value <= 255)) {
 			/* Disable Auto Focus */
 			//unsigned char i,status;
@@ -2433,7 +2449,9 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
                     return -EINVAL;
 		break;	
 	
-	case V4L2_CID_TEST_PATTERN: {
+	case V4L2_CID_TEST_PATTERN: 
+  {
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_TEST_PATTERN\n");
 		printk("ioctl_queryctrl: V4L2_CID_TEST_PATTERN \n");
 		switch (vc->value) {
 			case TEST_PATTERN_COLOR_BAR:
@@ -2458,7 +2476,9 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		return 0;
 	}break;
 	
-	case V4L2_CID_COLORFX: {
+	case V4L2_CID_COLORFX: 
+  {
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_COLORFX\n");
 		switch (vc->value) {
 			case V4L2_COLORFX_NONE:
 				WRITE_REG_WITH_OVT_MAST(0x5588, 0x00, 0x40);
@@ -2507,26 +2527,39 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 
 	
 	case V4L2_CID_DO_WHITE_BALANCE:
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_DO_WHITE_BALANCE - NOP\n");
 		break;
+
 	case V4L2_CID_RED_BALANCE:
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_RED_BALANCE - NOP\n");
 		break;
+
 	case V4L2_CID_BLUE_BALANCE:
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_BLUE_BALANCE - NOP\n");
 		break;
+
 	case V4L2_CID_GAMMA:
+  printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_GAMMA - NOP\n");
 		break;
 
 	case V4L2_CID_EXPOSURE:
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_EXPOSURE\n");
 		OV5640_set_shutter(vc->value);
 		break;
+
 	case V4L2_CID_AUTOGAIN:
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::OV5640_turn_on_AE_AG\n");
 		OV5640_turn_on_AE_AG(vc->value);
 		ov5640_data.ae_mode = vc->value;
 		break;
+
 	case V4L2_CID_GAIN:
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::OV5640_set_gain16\n");
 		OV5640_set_gain16(vc->value);
 		break;
 
 	default:
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::UNKNOWN\n");
 		retval = -EPERM;
 		break;
 	}
