@@ -787,7 +787,7 @@ static struct i2c_driver ov5640_i2c_driver = {
 
 static void ov5640_standby(s32 enable)
 {
-  printk(KERN_ALERT "ov5640_mipi:ov5640_standby: %d\n", enable);
+  //printk(KERN_ALERT "ov5640_mipi:ov5640_standby: %d\n", enable);
 
 	if (enable)
 		gpio_set_value(pwn_gpio, 1);
@@ -799,7 +799,7 @@ static void ov5640_standby(s32 enable)
 
 static void ov5640_reset(void)
 {
-  printk(KERN_ALERT "ov5640_mipi:ov5640_reset\n");
+  //printk(KERN_ALERT "ov5640_mipi:ov5640_reset\n");
 
 	/* camera reset */
 	gpio_set_value(rst_gpio, 1);
@@ -824,7 +824,7 @@ static int ov5640_power_on(struct device *dev)
 {
 	int ret = 0;
 
-  printk(KERN_ALERT "ov5640_mipi:ov5640_power_on\n");
+  //printk(KERN_ALERT "ov5640_mipi:ov5640_power_on\n");
 
 	io_regulator = devm_regulator_get(dev, "DOVDD");
 	if (!IS_ERR(io_regulator)) {
@@ -936,14 +936,14 @@ static int AE_low, AE_high, AE_Target = 52;
 
 void OV5640_stream_on(void)
 {
-  printk(KERN_ALERT "ov5640_mipi:OV5640_stream_on\n");
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_stream_on\n");
 
 	ov5640_write_reg(0x4202, 0x00);
 }
 
 void OV5640_stream_off(void)
 {
-  printk(KERN_ALERT "ov5640_mipi:OV5640_stream_off\n");
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_stream_off\n");
 
 	ov5640_write_reg(0x4202, 0x0f);
 }
@@ -1005,7 +1005,7 @@ int OV5640_get_sysclk(void)
 		__func__, sysclk, ov5640_data.mclk, Multiplier,
 		PreDiv, SysDiv, Pll_rdiv, Bit_div2x, sclk_rdiv);
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_get_sysclk: %u\n", sysclk);
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_get_sysclk: %u\n", sysclk);
 	return sysclk;
 }
 
@@ -1014,7 +1014,7 @@ void OV5640_set_night_mode(void)
 	 /* read HTS from register settings */
 	u8 mode;
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_set_night_mode\n");
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_set_night_mode\n");
 
 	ov5640_read_reg(0x3a00, &mode);
 	mode &= 0xfb;
@@ -1030,7 +1030,7 @@ int OV5640_get_HTS(void)
 	HTS = ov5640_read_reg(0x380c, &temp);
 	HTS = (HTS<<8) + ov5640_read_reg(0x380d, &temp);
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_get_HTS: %d\n", HTS);
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_get_HTS: %d\n", HTS);
 
 	return HTS;
 }
@@ -1046,7 +1046,7 @@ int OV5640_get_VTS(void)
 
 	VTS = (VTS<<8) + ov5640_read_reg(0x380f, &temp);
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_get_VTS: %d\n", VTS);
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_get_VTS: %d\n", VTS);
 
 	return VTS;
 }
@@ -1056,7 +1056,7 @@ int OV5640_set_VTS(int VTS)
 	 /* write VTS to registers */
 	 int temp;
 
-   printk(KERN_ALERT "ov5640_mipi:OV5640_set_VTS: %d\n", VTS);
+   //printk(KERN_ALERT "ov5640_mipi:OV5640_set_VTS: %d\n", VTS);
 
 	 temp = VTS & 0xff;
 	 ov5640_write_reg(0x380f, temp);
@@ -1077,14 +1077,14 @@ int OV5640_get_shutter(void)
 	shutter = (shutter<<8) + ov5640_read_reg(0x3501, &temp);
 	shutter = (shutter<<4) + (ov5640_read_reg(0x3502, &temp)>>4);
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_get_shutter: %d\n", shutter);
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_get_shutter: %d\n", shutter);
 
 	 return shutter;
 }
 
 int OV5640_set_shutter(int shutter)
 {
-  printk(KERN_ALERT "ov5640_mipi:OV5640_set_shutter: %d\n", shutter);
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_set_shutter: %d\n", shutter);
 
 	 /* write shutter, in number of line period */
 	 int temp;
@@ -1114,14 +1114,14 @@ int OV5640_get_gain16(void)
 	gain16 = ov5640_read_reg(0x350a, &temp) & 0x03;
 	gain16 = (gain16<<8) + ov5640_read_reg(0x350b, &temp);
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_get_gain16: %d\n", gain16);
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_get_gain16: %d\n", gain16);
 
 	return gain16;
 }
 
 int OV5640_set_gain16(int gain16)
 {
-  printk(KERN_ALERT "ov5640_mipi:OV5640_set_gain16: %d\n", gain16);
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_set_gain16: %d\n", gain16);
 
 	/* write gain, 16 = 1x */
 	u8 temp;
@@ -1142,7 +1142,7 @@ int OV5640_get_light_freq(void)
 	int temp, temp1, light_freq = 0;
 	u8 tmp;
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_get_light_freq\n");
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_get_light_freq\n");
 
 	temp = ov5640_read_reg(0x3c01, &tmp);
 
@@ -1175,7 +1175,7 @@ void OV5640_set_bandingfilter(void)
 	int prev_VTS;
 	int band_step60, max_band60, band_step50, max_band50;
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_set_bandingfilter\n");
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_set_bandingfilter\n");
 
 	/* read preview PCLK */
 	prev_sysclk = OV5640_get_sysclk();
@@ -1210,7 +1210,7 @@ int OV5640_set_AE_target(int target)
 	AE_low = target * 23 / 25;	/* 0.92 */
 	AE_high = target * 27 / 25;	/* 1.08 */
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_set_AE_target\n");
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_set_AE_target\n");
 
 	fast_high = AE_high<<1;
 	if (fast_high > 255)
@@ -1232,7 +1232,7 @@ void OV5640_turn_on_AE_AG(int enable)
 {
 	u8 ae_ag_ctrl;
 
-  printk(KERN_ALERT "ov5640_mipi:OV5640_turn_on_AE_AG\n");
+  //printk(KERN_ALERT "ov5640_mipi:OV5640_turn_on_AE_AG\n");
 
 	ov5640_read_reg(0x3503, &ae_ag_ctrl);
 	if (enable) {
@@ -1250,7 +1250,7 @@ void OV5640_turn_on_AE_AG(int enable)
 bool ov5640_binning_on(void)
 {
 	u8 temp;
-  printk(KERN_ALERT "ov5640_mipi:ov5640_binning_on\n");
+  //printk(KERN_ALERT "ov5640_mipi:ov5640_binning_on\n");
 
 	ov5640_read_reg(0x3821, &temp);
 	temp &= 0xfe;
@@ -1264,7 +1264,7 @@ static void ov5640_set_virtual_channel(int channel)
 {
 	u8 channel_id;
 
-  printk(KERN_ALERT "ov5640_mipi:ov5640_set_virtual_channel\n");
+  //printk(KERN_ALERT "ov5640_mipi:ov5640_set_virtual_channel\n");
 
 	ov5640_read_reg(0x4814, &channel_id);
 	channel_id &= ~(3 << 6);
@@ -1281,7 +1281,7 @@ static int ov5640_download_firmware(struct reg_value *pModeSetting, s32 ArySize)
 	u8 RegVal = 0;
 	int i, retval = 0;
 
-  printk(KERN_ALERT "ov5640_mipi:ov5640_download_firmware\n");
+  //printk(KERN_ALERT "ov5640_mipi:ov5640_download_firmware\n");
 
 	for (i = 0; i < ArySize; ++i, ++pModeSetting) {
 		Delay_ms = pModeSetting->u32Delay_ms;
@@ -1326,7 +1326,7 @@ static int ov5640_change_mode_exposure_calc(enum ov5640_frame_rate frame_rate,
 	long cap_gain16_shutter;
 	int retval = 0;
 
-  printk(KERN_ALERT "ov5640_mipi:ov5640_change_mode_exposure_calc\n");
+  //printk(KERN_ALERT "ov5640_mipi:ov5640_change_mode_exposure_calc\n");
 
 	/* check if the input mode and frame rate is valid */
 	pModeSetting =
@@ -1455,7 +1455,7 @@ static int ov5640_change_mode_direct(enum ov5640_frame_rate frame_rate,
 	s32 ArySize = 0;
 	int retval = 0;
 	
-  printk(KERN_ALERT "ov5640_mipi:ov5640_change_mode_direct: mode = %d \n",mode);
+  //printk(KERN_ALERT "ov5640_mipi:ov5640_change_mode_direct: mode = %d \n",mode);
 
 	/* check if the input mode and frame rate is valid */
 	pModeSetting =
@@ -1502,7 +1502,7 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 	u32 mipi_reg, msec_wait4stable = 0;
 	enum ov5640_downsize_mode dn_mode, orig_dn_mode;
 
-  printk(KERN_ALERT "ov5640_mipi:ov5640_init_mode\n");
+  //printk(KERN_ALERT "ov5640_mipi:ov5640_init_mode\n");
 
 	if ((mode > ov5640_mode_MAX || mode < ov5640_mode_MIN)
 		&& (mode != ov5640_mode_INIT)) {
@@ -1641,7 +1641,7 @@ err:
 
 static int ioctl_g_ifparm(struct v4l2_int_device *s, struct v4l2_ifparm *p)
 {
-  printk(KERN_ALERT "ov5640_mipi:ioctl_g_ifparm\n");
+  //printk(KERN_ALERT "ov5640_mipi:ioctl_g_ifparm\n");
 
 	if (s == NULL) {
 		pr_err("   ERROR!! no slave device set!\n");
@@ -1672,7 +1672,7 @@ static int ioctl_s_power(struct v4l2_int_device *s, int on)
 {
 	struct sensor_data *sensor = s->priv;
 
-  printk(KERN_ALERT "ov5640_mipi:ioctl_s_power\n");
+  //printk(KERN_ALERT "ov5640_mipi:ioctl_s_power\n");
 
 	if (on && !sensor->on) {
 		if (io_regulator)
@@ -1720,7 +1720,7 @@ static int ioctl_g_parm(struct v4l2_int_device *s, struct v4l2_streamparm *a)
 	struct v4l2_captureparm *cparm = &a->parm.capture;
 	int ret = 0;
 
-  printk(KERN_ALERT "ov5640_mipi:ioctl_g_parm %d\n", a->type);
+  //printk(KERN_ALERT "ov5640_mipi:ioctl_g_parm %d\n", a->type);
 
 	switch (a->type) {
 	/* This is the only case currently handled. */
@@ -1770,7 +1770,7 @@ static int ioctl_s_parm(struct v4l2_int_device *s, struct v4l2_streamparm *a)
 	enum ov5640_mode orig_mode;
 	int ret = 0;
 
-  printk(KERN_ALERT "ov5640_mipi:ioctl_s_parm %d\n", a->type);
+  //printk(KERN_ALERT "ov5640_mipi:ioctl_s_parm %d\n", a->type);
 
 	/* Make sure power on */
 	ov5640_standby(0);
@@ -1860,14 +1860,14 @@ static int ioctl_g_fmt_cap(struct v4l2_int_device *s, struct v4l2_format *f)
 	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
 		f->fmt.pix = sensor->pix;
 		pr_debug("%s: %dx%d\n", __func__, sensor->pix.width, sensor->pix.height);
-    printk(KERN_ALERT "ov5640_mipi:ioctl_g_fmt_cap::V4L2_BUF_TYPE_VIDEO_CAPTURE: %dx%d\n", sensor->pix.width, sensor->pix.height);
+    //printk(KERN_ALERT "ov5640_mipi:ioctl_g_fmt_cap::V4L2_BUF_TYPE_VIDEO_CAPTURE: %dx%d\n", sensor->pix.width, sensor->pix.height);
 		break;
 
 	case V4L2_BUF_TYPE_SENSOR:
 		pr_debug("%s: left=%d, top=%d, %dx%d\n", __func__,
 			sensor->spix.left, sensor->spix.top,
 			sensor->spix.swidth, sensor->spix.sheight);
-    printk(KERN_ALERT "ov5640_mipi:ioctl_g_fmt_cap::V4L2_BUF_TYPE_SENSOR: left=%d, top=%d, %dx%d\n", sensor->spix.left, sensor->spix.top, sensor->spix.swidth, sensor->spix.sheight);
+    //printk(KERN_ALERT "ov5640_mipi:ioctl_g_fmt_cap::V4L2_BUF_TYPE_SENSOR: left=%d, top=%d, %dx%d\n", sensor->spix.left, sensor->spix.top, sensor->spix.swidth, sensor->spix.sheight);
 		f->fmt.spix = sensor->spix;
 		break;
 
@@ -1990,7 +1990,7 @@ static int ioctl_queryctrl(struct v4l2_int_device *s, struct v4l2_queryctrl *qc)
 {
 	int i;
 
-  printk(KERN_ALERT "ov5640_mipi:ioctl_queryctrl %d\n", qc->id);
+  //printk(KERN_ALERT "ov5640_mipi:ioctl_queryctrl %d\n", qc->id);
 
 	/* Fill in min, max, step and default value for these controls. */
 	switch (qc->id) {
@@ -2052,7 +2052,7 @@ static int ioctl_g_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 {
 	int ret = 0;
 
-  printk(KERN_ALERT "ov5640_mipi:ioctl_g_ctrl %d\n", vc->id);
+  //printk(KERN_ALERT "ov5640_mipi:ioctl_g_ctrl %d\n", vc->id);
 
 	// ARANZ - Allow access to the internal register table
 	if (vc->id & V4L2_CID_REGISTERS_BASE) {
@@ -2148,7 +2148,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		uint8_t value = vc->value;
 		ov5640_write_reg(addr, value);
 
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_REGISTERS_BASE:: %X: %X\n", addr, value);
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_REGISTERS_BASE:: %X: %X\n", addr, value);
 
 		return 0;
 	}
@@ -2195,7 +2195,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
   {
 	case V4L2_CID_BRIGHTNESS:
 	{
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_BRIGHTNESS\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_BRIGHTNESS\n");
 
 		if ((vc->value >= -64) && (vc->value <= 64)) {
 			WRITE_REG_WITH_OVT_MAST(0x5001, 0x80, 0x80);
@@ -2214,7 +2214,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_CONTRAST:
 	{
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_CONTRAST\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_CONTRAST\n");
 
 		if ((vc->value >= -12) && (vc->value <= 12)) {
 			WRITE_REG_WITH_OVT_MAST(0x5001, 0x80, 0x80);
@@ -2227,7 +2227,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_SATURATION:
 	{
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_SATURATION\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_SATURATION\n");
 
 		if ((vc->value >= -48) && (vc->value <= 48)) {
 			WRITE_REG_WITH_OVT_MAST(0x5580, 0x02, 0x1A);
@@ -2242,7 +2242,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_HUE:
 	{
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_HUE\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_HUE\n");
 
 		vc->value -= (vc->value % 30);
 		if((vc->value >= -180) && (vc->value <= 150))
@@ -2342,7 +2342,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_AUTO_WHITE_BALANCE:
 	{
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_AUTO_WHITE_BALANCE\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_AUTO_WHITE_BALANCE\n");
 
 		if (vc->value)
 			vc->value = 1;
@@ -2354,7 +2354,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_WHITE_BALANCE_TEMPERATURE: 
   {
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_WHITE_BALANCE_TEMPERATURE\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_WHITE_BALANCE_TEMPERATURE\n");
 
 		if ((vc->value >=3000) && (vc->value <=6000)) {
 			ov5640_data.wb_temp = vc->value;
@@ -2364,7 +2364,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_HFLIP: 
   {
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_HFLIP\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_HFLIP\n");
 		if ((vc->value >= 0) && (vc->value <= 1)) {
 			ov5640_read_reg(0x3821, &reg_value);
 			if (vc->value) {
@@ -2379,7 +2379,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	}break;
 	case V4L2_CID_VFLIP: 
   {
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_VFLIP\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_VFLIP\n");
 		if ((vc->value >= 0) && (vc->value <= 1) ) {
 			ov5640_read_reg(0x3820, &reg_value);
 	
@@ -2396,7 +2396,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	
 	case V4L2_CID_FOCUS_TRIGGER: 
   {
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_FOCUS_TRIGGER\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_FOCUS_TRIGGER\n");
 		//unsigned char status,i;
 
 		ov5640_write_reg(0x3023, 0x01);     
@@ -2427,7 +2427,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	
 	case V4L2_CID_AUTO_FOCUS_START: /* Continuous AF Start*/
 		//unsigned char i,status;
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_AUTO_FOCUS_START\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_AUTO_FOCUS_START\n");
 		printk("V4L2_CID_AUTO_FOCUS_START \n");
 
 		ov5640_write_reg(0x3023, 0x01);        //Enable Continuous Focus
@@ -2446,7 +2446,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		break;
 	case V4L2_CID_AUTO_FOCUS_STOP: /* Continuous AF Stop*/
 		//unsigned char i,status;
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_AUTO_FOCUS_STOP\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_AUTO_FOCUS_STOP\n");
 		printk("V4L2_CID_AUTO_FOCUS_STOP \n");
 
 		ov5640_write_reg(0x3023, 0x01);     //Release Continuous Focus
@@ -2465,7 +2465,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	
 	case V4L2_CID_FOCUS_ABSOLUTE: 
 		/* Enter manual focus stub */
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_FOCUS_ABSOLUTE\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_FOCUS_ABSOLUTE\n");
 		if ((vc->value >= 0) && (vc->value <= 255)) {
 			/* Disable Auto Focus */
 			//unsigned char i,status;
@@ -2491,7 +2491,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	
 	case V4L2_CID_TEST_PATTERN: 
   {
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_TEST_PATTERN\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_TEST_PATTERN\n");
 		printk("ioctl_queryctrl: V4L2_CID_TEST_PATTERN \n");
 		switch (vc->value) {
 			case TEST_PATTERN_COLOR_BAR:
@@ -2518,7 +2518,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 	
 	case V4L2_CID_COLORFX: 
   {
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_COLORFX\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_COLORFX\n");
 		switch (vc->value) {
 			case V4L2_COLORFX_NONE:
 				WRITE_REG_WITH_OVT_MAST(0x5588, 0x00, 0x40);
@@ -2567,39 +2567,39 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 
 	
 	case V4L2_CID_DO_WHITE_BALANCE:
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_DO_WHITE_BALANCE - NOP\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_DO_WHITE_BALANCE - NOP\n");
 		break;
 
 	case V4L2_CID_RED_BALANCE:
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_RED_BALANCE - NOP\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_RED_BALANCE - NOP\n");
 		break;
 
 	case V4L2_CID_BLUE_BALANCE:
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_BLUE_BALANCE - NOP\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_BLUE_BALANCE - NOP\n");
 		break;
 
 	case V4L2_CID_GAMMA:
-  printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_GAMMA - NOP\n");
+  //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_GAMMA - NOP\n");
 		break;
 
 	case V4L2_CID_EXPOSURE:
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_EXPOSURE\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_EXPOSURE\n");
 		OV5640_set_shutter(vc->value);
 		break;
 
 	case V4L2_CID_AUTOGAIN:
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::OV5640_turn_on_AE_AG\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::OV5640_turn_on_AE_AG\n");
 		OV5640_turn_on_AE_AG(vc->value);
 		ov5640_data.ae_mode = vc->value;
 		break;
 
 	case V4L2_CID_GAIN:
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::OV5640_set_gain16\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::OV5640_set_gain16\n");
 		OV5640_set_gain16(vc->value);
 		break;
 
 	default:
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::UNKNOWN\n");
+    //printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::UNKNOWN\n");
 		retval = -EPERM;
 		break;
 	}
@@ -2614,7 +2614,7 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
  */
 static bool valid_pixfmt(u32 pixelformat)
 {
-  printk(KERN_ALERT "ov5640_mipi::valid_pixfmt\n");
+  //printk(KERN_ALERT "ov5640_mipi::valid_pixfmt\n");
 
 	int i;
 	for (i = 0; i < ARRAY_SIZE(ov5640_supported_fmts); i++) {
@@ -2637,8 +2637,8 @@ static int ioctl_enum_framesizes(struct v4l2_int_device *s,
 {
 	int i, count = 0;
 
-  printk(KERN_ALERT "ov5640_mipi::ioctl_enum_framesizes\n");
-	printk(KERN_ALERT "ioctl_enum_framesizes: pixfmt=%.8x, index=%d\n", fsize->pixel_format, fsize->index);
+  //printk(KERN_ALERT "ov5640_mipi::ioctl_enum_framesizes\n");
+	//printk(KERN_ALERT "ioctl_enum_framesizes: pixfmt=%.8x, index=%d\n", fsize->pixel_format, fsize->index);
 
 	if (!valid_pixfmt(fsize->pixel_format)) {
 		// NOTE: This is non-standard - pixelformat is being treated as an output instead of an input.
@@ -2692,7 +2692,7 @@ static int ioctl_enum_frameintervals(struct v4l2_int_device *s,
 	fival->type = V4L2_FRMIVAL_TYPE_DISCRETE;
 	fival->discrete.numerator = 1;
 
-  printk(KERN_ALERT "ov5640_mipi::ioctl_enum_frameintervals.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ioctl_enum_frameintervals.\n");
 
 	for (i = 0; i < ARRAY_SIZE(ov5640_mode_info_data); i++)
 		for (j = 0; j < (ov5640_mode_MAX + 1); j++)
@@ -2719,7 +2719,7 @@ static int ioctl_enum_frameintervals(struct v4l2_int_device *s,
  */
 static int ioctl_g_chip_ident(struct v4l2_int_device *s, int *id)
 {
-  printk(KERN_ALERT "ov5640_mipi::ioctl_g_chip_ident.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ioctl_g_chip_ident.\n");
 
 	((struct v4l2_dbg_chip_ident *)id)->match.type =
 					V4L2_CHIP_MATCH_I2C_DRIVER;
@@ -2735,7 +2735,7 @@ static int ioctl_g_chip_ident(struct v4l2_int_device *s, int *id)
  */
 static int ioctl_init(struct v4l2_int_device *s)
 {
-  printk(KERN_ALERT "ov5640_mipi::ioctl_init.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ioctl_init.\n");
 	return 0;
 }
 
@@ -2749,7 +2749,7 @@ static int ioctl_init(struct v4l2_int_device *s)
 static int ioctl_enum_fmt_cap(struct v4l2_int_device *s,
 			      struct v4l2_fmtdesc *fmt)
 {
-  printk(KERN_ALERT "ov5640_mipi::ioctl_enum_fmt_cap.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ioctl_enum_fmt_cap.\n");
 
 	if (fmt->index > ARRAY_SIZE(ov5640_supported_fmts))
 		return -EINVAL;
@@ -2775,7 +2775,7 @@ static int ioctl_dev_init(struct v4l2_int_device *s)
 	enum ov5640_frame_rate frame_rate;
 	void *mipi_csi2_info;
 
-  printk(KERN_ALERT "ov5640_mipi::ioctl_dev_init.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ioctl_dev_init.\n");
 
 	ov5640_data.on = true;
 
@@ -2824,7 +2824,7 @@ static int ioctl_dev_exit(struct v4l2_int_device *s)
 {
 	void *mipi_csi2_info;
 
-  printk(KERN_ALERT "ov5640_mipi::ioctl_dev_exit.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ioctl_dev_exit.\n");
 
 	mipi_csi2_info = mipi_csi2_get_info();
 
@@ -2894,7 +2894,7 @@ static int ov5640_reg_writes(const struct ov5640_reg reglist[],
 {
         int err = 0, i;
 
-        printk(KERN_ALERT "ov5640_mipi::ov5640_reg_writes.\n");
+        //printk(KERN_ALERT "ov5640_mipi::ov5640_reg_writes.\n");
 
         for (i = 0; i < size; i++) {
                 err = ov5640_write_reg(reglist[i].reg, reglist[i].val);
@@ -2918,7 +2918,7 @@ static ssize_t set_reg(struct device *dev,
 {
 	int regnum, value;
 
-  printk(KERN_ALERT "ov5640_mipi::set_reg.\n");
+  //printk(KERN_ALERT "ov5640_mipi::set_reg.\n");
 
 	int num_parsed = sscanf(buf, "%04x=%02x", &regnum, &value);
 	if (1 <= num_parsed) {
@@ -2953,7 +2953,7 @@ static int ov5640_probe(struct i2c_client *client,
 	u8 chip_id_high, chip_id_low;
 	struct sensor_data *sensor = &ov5640_data;
 
-  printk(KERN_ALERT "ov5640_mipi::ov5640_probe.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ov5640_probe.\n");
 
 	/* request power down pin */
 	pwn_gpio = of_get_named_gpio(dev->of_node, "pwn-gpios", 0);
@@ -3083,7 +3083,7 @@ static int ov5640_probe(struct i2c_client *client,
  */
 static int ov5640_remove(struct i2c_client *client)
 {
-  printk(KERN_ALERT "ov5640_mipi::ov5640_remove.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ov5640_remove.\n");
 
 	v4l2_int_device_unregister(&ov5640_int_device);
 
@@ -3112,7 +3112,7 @@ static __init int ov5640_init(void)
 {
 	u8 err;
 
-  printk(KERN_ALERT "ov5640_mipi::ov5640_init.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ov5640_init.\n");
 
 	err = i2c_add_driver(&ov5640_i2c_driver);
 	if (err != 0)
@@ -3130,7 +3130,7 @@ static __init int ov5640_init(void)
  */
 static void __exit ov5640_clean(void)
 {
-  printk(KERN_ALERT "ov5640_mipi::ov5640_clean.\n");
+  //printk(KERN_ALERT "ov5640_mipi::ov5640_clean.\n");
 
 	i2c_del_driver(&ov5640_i2c_driver);
 }
