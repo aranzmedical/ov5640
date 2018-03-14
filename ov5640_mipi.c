@@ -1583,10 +1583,11 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 	ov5640_set_virtual_channel(ov5640_data.virtual_channel);
 
   ov5640_write_reg(0x3016, 0x02);
-  //ov5640_write_reg(0x3A1C, 0x06);
-  //ov5640_write_reg(0x3A1D, 0x18);
-  //ov5640_write_reg(0x3b07, 0x0A);
-  ov5640_write_reg(0x3b00, 0x82);
+  ov5640_write_reg(0x301C, 0x00);
+  ov5640_write_reg(0x3A1C, 0x00);
+  ov5640_write_reg(0x3A1D, 0x00);
+  ov5640_write_reg(0x3B07, 0x03);
+  ov5640_write_reg(0x3B00, 0x81);
 
 //	/* add delay to wait for sensor stable */
 //	if (mode == ov5640_mode_QSXGA_2592_1944) {
@@ -1854,18 +1855,27 @@ static int ioctl_g_fmt_cap(struct v4l2_int_device *s, struct v4l2_format *f)
 {
 	struct sensor_data *sensor = s->priv;
 
-  printk(KERN_ALERT "ov5640_mipi:ioctl_g_fmt_cap %d\n", f->type);
+  
+
+  ov5640_write_reg(0x3016, 0x02);
+  ov5640_write_reg(0x301C, 0x00);
+  ov5640_write_reg(0x3A1C, 0x00);
+  ov5640_write_reg(0x3A1D, 0x00);
+  ov5640_write_reg(0x3B07, 0x03);
+  ov5640_write_reg(0x3B00, 0x81);
 
 	switch (f->type) {
 	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
 		f->fmt.pix = sensor->pix;
 		pr_debug("%s: %dx%d\n", __func__, sensor->pix.width, sensor->pix.height);
+    printk(KERN_ALERT "ov5640_mipi:ioctl_g_fmt_cap::V4L2_BUF_TYPE_VIDEO_CAPTURE: %dx%d\n", sensor->pix.width, sensor->pix.height);
 		break;
 
 	case V4L2_BUF_TYPE_SENSOR:
 		pr_debug("%s: left=%d, top=%d, %dx%d\n", __func__,
 			sensor->spix.left, sensor->spix.top,
 			sensor->spix.swidth, sensor->spix.sheight);
+    printk(KERN_ALERT "ov5640_mipi:ioctl_g_fmt_cap::V4L2_BUF_TYPE_SENSOR: left=%d, top=%d, %dx%d\n", sensor->spix.left, sensor->spix.top, sensor->spix.swidth, sensor->spix.sheight);
 		f->fmt.spix = sensor->spix;
 		break;
 
