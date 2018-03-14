@@ -2152,7 +2152,46 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 		return 0;
 	}
 
-	switch (vc->id) {
+  uint8_t value = 0x00;
+
+  ov5640_read_reg(0x3016, &value);
+  if(value != 0x02)
+  {
+    ov5640_write_reg(0x3016, 0x02);
+  }
+
+  ov5640_read_reg(0x301C, &value);
+  if(value != 0x00)
+  {
+    ov5640_write_reg(0x301C, 0x00);
+  }
+
+  ov5640_read_reg(0x3A1C, &value);
+  if(value != 0x00)
+  {
+    ov5640_write_reg(0x3A1C, 0x00);
+  }
+
+  ov5640_read_reg(0x3A1D, &value);
+  if(value != 0x00)
+  {
+    ov5640_write_reg(0x3A1D, 0x00);
+  }
+
+  ov5640_read_reg(0x3B07, &value);
+  if(value != 0x03)
+  {
+    ov5640_write_reg(0x3B07, 0x03);
+  }
+
+  ov5640_read_reg(0x3B00, &value);
+  if(value != 0x81)
+  {
+    ov5640_write_reg(0x3B00, 0x81);
+  }
+
+	switch (vc->id) 
+  {
 	case V4L2_CID_BRIGHTNESS:
 	{
     printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_BRIGHTNESS\n");
