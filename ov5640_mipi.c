@@ -1587,7 +1587,7 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
   ov5640_write_reg(0x3A1C, 0x00);
   ov5640_write_reg(0x3A1D, 0x00);
   ov5640_write_reg(0x3B07, 0x03);
-  ov5640_write_reg(0x3B00, 0x81);
+  ov5640_write_reg(0x3B00, 0x82);
 
 //	/* add delay to wait for sensor stable */
 //	if (mode == ov5640_mode_QSXGA_2592_1944) {
@@ -2141,14 +2141,15 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
 
 	if (vc->id & V4L2_CID_REGISTERS_BASE) 
   {
-    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_REGISTERS_BASE\n");
-
 		uint16_t addr = vc->id & 0x0000FFFF;
 		if (addr == 0)
 			return -EINVAL;
 
 		uint8_t value = vc->value;
 		ov5640_write_reg(addr, value);
+
+    printk(KERN_ALERT "ov5640_mipi::ioctl_s_ctrl::V4L2_CID_REGISTERS_BASE:: %X: %X\n", addr, value);
+
 		return 0;
 	}
 
@@ -2185,9 +2186,9 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
   }
 
   ov5640_read_reg(0x3B00, &value);
-  if(value != 0x81)
+  if(value != 0x82)
   {
-    ov5640_write_reg(0x3B00, 0x81);
+    ov5640_write_reg(0x3B00, 0x82);
   }
 
 	switch (vc->id) 
