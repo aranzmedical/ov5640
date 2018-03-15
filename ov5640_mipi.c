@@ -1607,7 +1607,13 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
   ov5640_write_reg(0x3A1C, 0x00);
   ov5640_write_reg(0x3A1D, 0x00);
   ov5640_write_reg(0x3B07, 0x03);
-  ov5640_write_reg(0x3B00, 0x82);
+  ov5640_write_reg(0x3B00, 0x82);  
+  ov5640_write_reg(0x4709, 0x00);
+  ov5640_write_reg(0x470A, 0x01);
+  ov5640_write_reg(0x470B, 0x00);
+  ov5640_write_reg(0x4721, 0x07);
+  ov5640_write_reg(0x4722, 0x07);
+  ov5640_write_reg(0x471D, 0x00);
 
 //	/* add delay to wait for sensor stable */
 //	if (mode == ov5640_mode_QSXGA_2592_1944) {
@@ -2209,6 +2215,12 @@ static int ioctl_s_ctrl(struct v4l2_int_device *s, struct v4l2_control *vc)
   if(value != 0x82)
   {
     ov5640_write_reg(0x3B00, 0x82);
+  }
+
+  ov5640_read_reg(0x471D, &value);
+  if(value != 0x00)
+  {
+    ov5640_write_reg(0x471D, 0x00);
   }
 
 	switch (vc->id) 
