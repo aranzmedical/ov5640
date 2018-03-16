@@ -125,7 +125,7 @@ struct ov5640_mode_info {
  * Maintains the information on the current state of the sesor.
  */
 static struct sensor_data ov5640_data;
-static int pwn_gpio, rst_gpio, settings_gpio;
+static int pwn_gpio, rst_gpio; //, settings_gpio;
 static int settings_gpio_state = 0;
 
 static struct reg_value ov5640_init_setting_30fps_VGA[] = {
@@ -790,12 +790,12 @@ static void settings_toggle(void)
 {
   if (settings_gpio_state)
   {
-		gpio_set_value(settings_gpio, 0);
+		//gpio_set_value(settings_gpio, 0);
     settings_gpio_state = 0;
   }
 	else
   {
-		gpio_set_value(settings_gpio, 1);
+		//gpio_set_value(settings_gpio, 1);
     settings_gpio_state = 1;
   }
 }
@@ -3013,18 +3013,18 @@ static int ov5640_probe(struct i2c_client *client,
 		return retval;
 	}
 
-  settings_gpio = of_get_named_gpio(dev->of_node, "settings-gpios", 0);
-  if (!gpio_is_valid(settings_gpio)) 
-  {
-		dev_warn(dev, "no sensor settings pin available");
-		return -EINVAL;
-	}
-	retval = devm_gpio_request_one(dev, settings_gpio, GPIOF_OUT_INIT_LOW, "ov5640_mipi_settings");
-	if (retval < 0) 
-  {
-		dev_warn(dev, "request of ov5640_mipi_settings failed");
-		return retval;
-	}
+  // settings_gpio = of_get_named_gpio(dev->of_node, "settings-gpios", 0);
+  // if (!gpio_is_valid(settings_gpio)) 
+  // {
+	// 	dev_warn(dev, "no sensor settings pin available");
+	// 	return -EINVAL;
+	// }
+	// retval = devm_gpio_request_one(dev, settings_gpio, GPIOF_OUT_INIT_LOW, "ov5640_mipi_settings");
+	// if (retval < 0) 
+  // {
+	// 	dev_warn(dev, "request of ov5640_mipi_settings failed");
+	// 	return retval;
+	// }
 
 	/* Set initial values for the sensor struct. */
 	memset(&ov5640_data, 0, sizeof(ov5640_data));
