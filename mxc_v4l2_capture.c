@@ -1930,6 +1930,8 @@ static int mxc_v4l_open(struct file *file)
 	struct sensor_data *sensor;
 	int csi_bit;
 
+  printk(KERN_ALERT "mxc_v4l2_capture::mxc_v4l_open.\n");
+
 	if (!cam) {
 		pr_err("%s: %s cam_data not found!\n", __func__, dev->name);
 		return -EBADF;
@@ -1995,11 +1997,10 @@ static int mxc_v4l_open(struct file *file)
 			       __func__);
 		}
 
-		wait_event_interruptible(cam->power_queue,
-					 cam->low_power == false);
+		wait_event_interruptible(cam->power_queue, cam->low_power == false);
 
-		if (strcmp(mxc_capture_inputs[cam->current_input].name,
-			   "CSI MEM") == 0) {
+		if (strcmp(mxc_capture_inputs[cam->current_input].name, "CSI MEM") == 0) 
+    {
 #if defined(CONFIG_MXC_IPU_CSI_ENC) || defined(CONFIG_MXC_IPU_CSI_ENC_MODULE)
 			err = csi_enc_select(cam);
 #endif
@@ -2041,6 +2042,8 @@ static int mxc_v4l_close(struct file *file)
 	cam_data *cam = video_get_drvdata(dev);
 	struct sensor_data *sensor;
 	pr_debug("%s\n", __func__);
+
+  printk(KERN_ALERT "mxc_v4l2_capture::mxc_v4l_close.\n");
 
 	if (!cam) {
 		pr_err("%s: cam_data not found!\n", __func__);
@@ -3170,10 +3173,14 @@ static DEVICE_ATTR(fsl_csi_property, S_IRUGO, show_csi, NULL);
  */
 static int mxc_v4l2_probe(struct platform_device *pdev)
 {
+
+  printk(KERN_ALERT "mxc_v4l2_probe.\n");
+
 	/* Create cam and initialize it. */
 	cam_data *cam = kmalloc(sizeof(cam_data), GFP_KERNEL);
-	if (cam == NULL) {
-		pr_err("ERROR: v4l2 capture: failed to register camera\n");
+	if (cam == NULL) 
+  {
+		printk(KERN_ALERT "ERROR: v4l2 capture: failed to register camera.\n");
 		return -1;
 	}
 
@@ -3185,30 +3192,24 @@ static int mxc_v4l2_probe(struct platform_device *pdev)
 	v4l2_int_device_register(cam->self);
 
 	/* register v4l video device */
-	if (video_register_device(cam->video_dev, VFL_TYPE_GRABBER, video_nr)
-		< 0) {
+	if (video_register_device(cam->video_dev, VFL_TYPE_GRABBER, video_nr) < 0) 
+  {
 		kfree(cam);
 		cam = NULL;
-		pr_err("ERROR: v4l2 capture: video_register_device failed\n");
+		printk(KERN_ALERT "ERROR: v4l2 capture: video_register_device failed\n");
 		return -1;
 	}
-	pr_debug("   Video device registered: %s #%d\n",
-		 cam->video_dev->name, cam->video_dev->minor);
 
-	if (device_create_file(&cam->video_dev->dev,
-			&dev_attr_fsl_v4l2_capture_property))
-		dev_err(&pdev->dev, "Error on creating sysfs file"
-			" for capture\n");
+	printk(KERN_ALERT "   Video device registered: %s #%d\n", cam->video_dev->name, cam->video_dev->minor);
 
-	if (device_create_file(&cam->video_dev->dev,
-			&dev_attr_fsl_v4l2_overlay_property))
-		dev_err(&pdev->dev, "Error on creating sysfs file"
-			" for overlay\n");
+	if (device_create_file(&cam->video_dev->dev, &dev_attr_fsl_v4l2_capture_property))
+		dev_err(&pdev->dev, "Error on creating sysfs file for capture\n");
 
-	if (device_create_file(&cam->video_dev->dev,
-			&dev_attr_fsl_csi_property))
-		dev_err(&pdev->dev, "Error on creating sysfs file"
-			" for csi number\n");
+	if (device_create_file(&cam->video_dev->dev, &dev_attr_fsl_v4l2_overlay_property))
+		dev_err(&pdev->dev, "Error on creating sysfs file for overlay\n");
+
+	if (device_create_file(&cam->video_dev->dev, &dev_attr_fsl_csi_property))
+		dev_err(&pdev->dev, "Error on creating sysfs file for csi number\n");
 
 	return 0;
 }
@@ -3376,32 +3377,36 @@ static int mxc_v4l2_master_attach(struct v4l2_int_device *slave)
 	int i;
 	struct sensor_data *sdata = slave->priv;
 
-	pr_debug("%s:slave.name = %s, master.name = %s\n", __func__,
-		slave->name, slave->u.slave->master->name);
+	printk(KERN_ALERT "%s: slave.name = %s, master.name = %s\n", __func__, slave->name, slave->u.slave->master->name);
 
-	if (slave == NULL) {
-		pr_err("ERROR: v4l2 capture: slave parameter not valid.\n");
+	if (slave == NULL) 
+  {
+		printk(KERN_ALERT "ERROR: v4l2 capture: slave parameter not valid.\n");
 		return -1;
 	}
 
-	if ((sdata->ipu_id != cam->ipu_id) || (sdata->csi != cam->csi) || (sdata->mipi_camera != cam->mipi_camera)) {
-		pr_info("%s: ipu(%d:%d)/csi(%d:%d)/mipi(%d:%d) doesn't match\n", __func__,
+	if ((sdata->ipu_id != cam->ipu_id) || (sdata->csi != cam->csi) || (sdata->mipi_camera != cam->mipi_camera)) 
+  {
+		printk(KERN_ALERT "%s: ipu(%d:%d)/csi(%d:%d)/mipi(%d:%d) doesn't match\n", __func__,
 			sdata->ipu_id, cam->ipu_id, sdata->csi, cam->csi, sdata->mipi_camera, cam->mipi_camera);
 		return -1;
 	}
 
 	cam->sensor = slave;
 
-	if (cam->sensor_index < MXC_SENSOR_NUM) {
+	if (cam->sensor_index < MXC_SENSOR_NUM) 
+  {
 		cam->all_sensors[cam->sensor_index] = slave;
 		cam->sensor_index++;
-	} else {
-		pr_err("ERROR: v4l2 capture: slave number exceeds "
-		       "the maximum.\n");
+	}
+  else 
+  {
+		printk(KERN_ALERT "ERROR: v4l2 capture: slave number exceeds the maximum.\n");
 		return -1;
 	}
 
-	for (i = 0; i < cam->sensor_index; i++) {
+	for (i = 0; i < cam->sensor_index; i++) 
+  {
 		pr_err("%s: %x\n", __func__, i);
 		vidioc_int_dev_exit(cam->all_sensors[i]);
 		vidioc_int_s_power(cam->all_sensors[i], 0);
@@ -3455,7 +3460,7 @@ static void mxc_v4l2_master_detach(struct v4l2_int_device *slave)
 	unsigned int i;
 	cam_data *cam = slave->u.slave->master->priv;
 
-	pr_debug("%s\n", __func__);
+	printk(KERN_ALERT "%s\n", __func__);
 
 	if (cam->sensor_index > 1) {
 		for (i = 0; i < cam->sensor_index; i++) {

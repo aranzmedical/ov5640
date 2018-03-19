@@ -1512,8 +1512,7 @@ err:
 	return retval;
 }
 
-static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
-			    enum ov5640_mode mode, enum ov5640_mode orig_mode)
+static int ov5640_init_mode(enum ov5640_frame_rate frame_rate, enum ov5640_mode mode, enum ov5640_mode orig_mode)
 {
 	struct reg_value *pModeSetting = NULL;
 	s32 ArySize = 0;
@@ -1522,11 +1521,11 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 	u32 mipi_reg, msec_wait4stable = 0;
 	enum ov5640_downsize_mode dn_mode, orig_dn_mode;
 
-  //printk(KERN_ALERT "ov5640_mipi:ov5640_init_mode\n");
+  printk(KERN_ALERT "ov5640_mipi:ov5640_init_mode\n");
 
 	if ((mode > ov5640_mode_MAX || mode < ov5640_mode_MIN)
 		&& (mode != ov5640_mode_INIT)) {
-		pr_err("Wrong ov5640 mode detected!\n");
+		printk(KERN_ALERT "Wrong ov5640 mode detected!\n");
 		return -1;
 	}
 
@@ -1534,16 +1533,18 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 
 	/* initial mipi dphy */
 	if (!mipi_csi2_info) {
-		printk(KERN_ERR "%s() in %s: Fail to get mipi_csi2_info!\n",
-		       __func__, __FILE__);
+		printk(KERN_ALERT "%s() in %s: Fail to get mipi_csi2_info!\n", __func__, __FILE__);
 		return -1;
 	}
 
 	if (!mipi_csi2_get_status(mipi_csi2_info))
-		mipi_csi2_enable(mipi_csi2_info);
+	{
+    mipi_csi2_enable(mipi_csi2_info);
+  }
 
-	if (!mipi_csi2_get_status(mipi_csi2_info)) {
-		pr_err("Can not enable mipi csi2 driver!\n");
+	if (!mipi_csi2_get_status(mipi_csi2_info)) 
+  {
+		printk(KERN_ALERT "Can not enable mipi csi2 driver!\n");
 		return -1;
 	}
 
@@ -1551,9 +1552,12 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 
 	/*Only reset MIPI CSI2 HW at sensor initialize*/
 	if (mode == ov5640_mode_INIT)
-		mipi_csi2_reset(mipi_csi2_info);
+  {
+    mipi_csi2_reset(mipi_csi2_info);
+  }
 
-	switch (ov5640_data.pix.pixelformat) {
+	switch (ov5640_data.pix.pixelformat) 
+  {
 		case V4L2_PIX_FMT_UYVY:
 			mipi_csi2_set_datatype(mipi_csi2_info, MIPI_DT_YUV422);
 			break;
@@ -1564,12 +1568,13 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 			mipi_csi2_set_datatype(mipi_csi2_info, MIPI_DT_RAW8);
 			break;
 		default:
-			pr_err("OV5640 sensor does not support this pixelformat!\n");
+			printk(KERN_ALERT "OV5640 sensor does not support this pixelformat!\n");
 	}
 
 	dn_mode = ov5640_mode_info_data[frame_rate][mode].dn_mode;
 	orig_dn_mode = ov5640_mode_info_data[frame_rate][orig_mode].dn_mode;
-	if (mode == ov5640_mode_INIT) {
+	if (mode == ov5640_mode_INIT) 
+  {
 		pModeSetting = ov5640_init_setting_30fps_VGA;
 		ArySize = ARRAY_SIZE(ov5640_init_setting_30fps_VGA);
 
@@ -1615,31 +1620,19 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
   ov5640_write_reg(0x4722, 0x07);
   ov5640_write_reg(0x471D, 0x00);
 
-//	/* add delay to wait for sensor stable */
-//	if (mode == ov5640_mode_QSXGA_2592_1944) {
-//		/* dump the first two frames: 1/7.5*2
-//		 * the frame rate of QSXGA is 7.5fps */
-//		msec_wait4stable = 267;
-//	} else if (frame_rate == ov5640_15_fps) {
-//		/* dump the first nine frames: 1/15*9 */
-//		msec_wait4stable = 600;
-//	} else if (frame_rate == ov5640_30_fps) {
-//		/* dump the first nine frames: 1/30*9 */
-//		msec_wait4stable = 300;
-//	}
-	//DISABLED WAIT FOR PERFORMANCE :D
-	//msleep(msec_wait4stable);
-
-	if (mipi_csi2_info) {
+	if (mipi_csi2_info) 
+  {
 		unsigned int i = 0;
 
 		/* wait for mipi sensor ready */
-		while (1) {
+		while (1) 
+    {
 			mipi_reg = mipi_csi2_dphy_status(mipi_csi2_info);
 			if (mipi_reg != 0x200)
 				break;
-			if (i++ >= 20) {
-				pr_err("mipi csi2 can not receive sensor clk! %x\n", mipi_reg);
+			if (i++ >= 20) 
+      {
+				printk(KERN_ALERT "mipi csi2 can not receive sensor clk! %x\n", mipi_reg);
 				return -1;
 			}
 			msleep(10);
@@ -1647,12 +1640,14 @@ static int ov5640_init_mode(enum ov5640_frame_rate frame_rate,
 
 		i = 0;
 		/* wait for mipi stable */
-		while (1) {
+		while (1) 
+    {
 			mipi_reg = mipi_csi2_get_error1(mipi_csi2_info);
 			if (!mipi_reg)
 				break;
-			if (i++ >= 20) {
-				pr_err("mipi csi2 can not receive data correctly!\n");
+			if (i++ >= 20) 
+      {
+				printk(KERN_ALERT "mipi csi2 can not receive data correctly!\n");
 				return -1;
 			}
 			msleep(10);
@@ -2977,15 +2972,14 @@ static DEVICE_ATTR(ov5640_reg, S_IRUGO|S_IWUGO, show_reg, set_reg);
  * @param adapter            struct i2c_adapter *
  * @return  Error code indicating success or failure
  */
-static int ov5640_probe(struct i2c_client *client,
-			const struct i2c_device_id *id)
+static int ov5640_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct device *dev = &client->dev;
 	int retval;
 	u8 chip_id_high, chip_id_low;
 	struct sensor_data *sensor = &ov5640_data;
 
-  //printk(KERN_ALERT "ov5640_mipi::ov5640_probe.\n");
+  printk(KERN_ALERT "ov5640_mipi::ov5640_probe.\n");
 
 	/* request power down pin */
 	pwn_gpio = of_get_named_gpio(dev->of_node, "pwn-gpios", 0);
@@ -3087,13 +3081,13 @@ static int ov5640_probe(struct i2c_client *client,
 
 	retval = ov5640_read_reg(OV5640_CHIP_ID_HIGH_BYTE, &chip_id_high);
 	if (retval < 0 || chip_id_high != 0x56) {
-		pr_warning("camera ov5640_mipi is not found\n");
+		printk(KERN_ALERT "camera ov5640_mipi is not found\n");
 		clk_disable_unprepare(ov5640_data.sensor_clk);
 		return -ENODEV;
 	}
 	retval = ov5640_read_reg(OV5640_CHIP_ID_LOW_BYTE, &chip_id_low);
 	if (retval < 0 || chip_id_low != 0x40) {
-		pr_warning("camera ov5640_mipi is not found\n");
+		printk(KERN_ALERT "camera ov5640_mipi is not found\n");
 		clk_disable_unprepare(ov5640_data.sensor_clk);
 		return -ENODEV;
 	}
@@ -3103,7 +3097,7 @@ static int ov5640_probe(struct i2c_client *client,
         retval = ov5640_reg_writes(focus_init, ARRAY_SIZE(focus_init));
         if (retval)
         {
-                pr_err("\n Auto Focus firmware dump fails\n");
+          printk(KERN_ALERT "\n Auto Focus firmware dump fails\n");
         }
 
 	sensor->virtual_channel = sensor->csi | (sensor->ipu_id << 1);
@@ -3115,8 +3109,10 @@ static int ov5640_probe(struct i2c_client *client,
 //	clk_disable_unprepare(ov5640_data.sensor_clk);
 
 	if (device_create_file(dev, &dev_attr_ov5640_reg))
+  {
 		dev_err(dev, "%s: error creating ov5640_reg entry\n", __func__);
-	pr_info("camera ov5640_mipi is found\n");
+  }
+	printk(KERN_ALERT "Camera ov5640_mipi is found\n");
 	return retval;
 }
 
