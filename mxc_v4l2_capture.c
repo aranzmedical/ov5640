@@ -285,6 +285,7 @@ static int mxc_allocate_frame_buf(cam_data *cam, int count)
 	}
 
 	pr_debug("%s: size=%d\n", __func__, map_sizeimage);
+  pr_err("%s: count=%d, size=%d\n", __func__, count, map_sizeimage);
 
 	for (i = 0; i < count; i++) {
 		cam->frame[i].vaddress =
@@ -462,24 +463,23 @@ static int mxc_streamon(cam_data *cam)
 	spin_lock_irqsave(&cam->queue_int_lock, lock_flags);
 	cam->ping_pong_csi = 0;
 	cam->local_buf_num = 0;
-	if (cam->enc_update_eba) {
-		frame =
-		    list_entry(cam->ready_q.next, struct mxc_v4l_frame, queue);
+	if (cam->enc_update_eba) 
+  {
+		frame = list_entry(cam->ready_q.next, struct mxc_v4l_frame, queue);
 		list_del(cam->ready_q.next);
 		list_add_tail(&frame->queue, &cam->working_q);
 		frame->ipu_buf_num = cam->ping_pong_csi;
-		err = cam->enc_update_eba(cam->ipu, frame->buffer.m.offset,
-					  &cam->ping_pong_csi);
+		err = cam->enc_update_eba(cam->ipu, frame->buffer.m.offset, &cam->ping_pong_csi);
 
-		frame =
-		    list_entry(cam->ready_q.next, struct mxc_v4l_frame, queue);
+		frame = list_entry(cam->ready_q.next, struct mxc_v4l_frame, queue);
 		list_del(cam->ready_q.next);
 		list_add_tail(&frame->queue, &cam->working_q);
 		frame->ipu_buf_num = cam->ping_pong_csi;
-		err |= cam->enc_update_eba(cam->ipu, frame->buffer.m.offset,
-					   &cam->ping_pong_csi);
+		err |= cam->enc_update_eba(cam->ipu, frame->buffer.m.offset, &cam->ping_pong_csi);
 		spin_unlock_irqrestore(&cam->queue_int_lock, lock_flags);
-	} else {
+	}
+  else 
+  {
 		spin_unlock_irqrestore(&cam->queue_int_lock, lock_flags);
 		return -EINVAL;
 	}
@@ -2215,8 +2215,7 @@ exit0:
  * @return           0 success, ENODEV for invalid device instance,
  *                   -1 for other errors.
  */
-static long mxc_v4l_do_ioctl(struct file *file,
-			    unsigned int ioctlnr, void *arg)
+static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 {
 	struct video_device *dev = video_devdata(file);
 	cam_data *cam = video_get_drvdata(dev);
@@ -2339,25 +2338,26 @@ static long mxc_v4l_do_ioctl(struct file *file,
 	/*!
 	 * V4l2 VIDIOC_QBUF ioctl
 	 */
-	case VIDIOC_QBUF: {
+	case VIDIOC_QBUF: 
+  {
 		struct v4l2_buffer *buf = arg;
 		int index = buf->index;
 		pr_debug("   case VIDIOC_QBUF\n");
 
 		spin_lock_irqsave(&cam->queue_int_lock, lock_flags);
-		if ((cam->frame[index].buffer.flags & 0x7) ==
-		    V4L2_BUF_FLAG_MAPPED) {
-			cam->frame[index].buffer.flags |=
-			    V4L2_BUF_FLAG_QUEUED;
-			list_add_tail(&cam->frame[index].queue,
-				      &cam->ready_q);
-		} else if (cam->frame[index].buffer.
-			   flags & V4L2_BUF_FLAG_QUEUED) {
+		if ((cam->frame[index].buffer.flags & 0x7) == V4L2_BUF_FLAG_MAPPED) 
+    {
+			cam->frame[index].buffer.flags |= V4L2_BUF_FLAG_QUEUED;
+			list_add_tail(&cam->frame[index].queue, &cam->ready_q);
+		} 
+    else if (cam->frame[index].buffer.flags & V4L2_BUF_FLAG_QUEUED) 
+    {
 			pr_err("ERROR: v4l2 capture: VIDIOC_QBUF: "
 			       "buffer already queued\n");
 			retval = -EINVAL;
-		} else if (cam->frame[index].buffer.
-			   flags & V4L2_BUF_FLAG_DONE) {
+		} 
+    else if (cam->frame[index].buffer.flags & V4L2_BUF_FLAG_DONE) 
+    {
 			pr_err("ERROR: v4l2 capture: VIDIOC_QBUF: "
 			       "overwrite done buffer.\n");
 			cam->frame[index].buffer.flags &=
@@ -2880,21 +2880,25 @@ static void camera_callback(u32 mask, void *dev)
 
 	cam_data *cam = (cam_data *) dev;
 	if (cam == NULL)
+  {
 		return;
+  }
 
 	pr_debug("%s\n", __func__);
 
 	spin_lock(&cam->queue_int_lock);
 	spin_lock(&cam->dqueue_int_lock);
-	if (!list_empty(&cam->working_q)) {
+	if (!list_empty(&cam->working_q)) 
+  {
 		do_gettimeofday(&cur_time);
 
-		done_frame = list_entry(cam->working_q.next,
-					struct mxc_v4l_frame,
-					queue);
+		done_frame = list_entry(cam->working_q.next, struct mxc_v4l_frame, queue);
 
 		if (done_frame->ipu_buf_num != cam->local_buf_num)
+    {
+      pr_err("Warning: v4l2 capture: Frame skipped due to Buffer num missmatch.\n");
 			goto next;
+    }
 
 		/*
 		 * Set the current time to done frame buffer's
@@ -2903,7 +2907,8 @@ static void camera_callback(u32 mask, void *dev)
 		 */
 		done_frame->buffer.timestamp = cur_time;
 
-		if (done_frame->buffer.flags & V4L2_BUF_FLAG_QUEUED) {
+		if (done_frame->buffer.flags & V4L2_BUF_FLAG_QUEUED) 
+    {
 			done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
 			done_frame->buffer.flags &= ~V4L2_BUF_FLAG_QUEUED;
 
@@ -2914,30 +2919,38 @@ static void camera_callback(u32 mask, void *dev)
 			/* Wake up the queue */
 			cam->enc_counter++;
 			wake_up_interruptible(&cam->enc_queue);
-		} else
-			pr_err("ERROR: v4l2 capture: camera_callback: "
-				"buffer not queued\n");
+		} 
+    else
+    {
+			pr_err("ERROR: v4l2 capture: camera_callback: buffer not queued\n");
+    }
 	}
+  else
+  {
+    pr_err("Warning: v4l2 capture: Frame skipped due to working Queue empty.\n");
+  }
 
 next:
-	if (!list_empty(&cam->ready_q)) {
-		ready_frame = list_entry(cam->ready_q.next,
-					 struct mxc_v4l_frame,
-					 queue);
+	if (!list_empty(&cam->ready_q)) 
+  {
+		ready_frame = list_entry(cam->ready_q.next, struct mxc_v4l_frame, queue);
 		if (cam->enc_update_eba)
-			if (cam->enc_update_eba(cam->ipu,
-						ready_frame->buffer.m.offset,
-						&cam->ping_pong_csi) == 0) {
+    {
+			if (cam->enc_update_eba(cam->ipu, ready_frame->buffer.m.offset, &cam->ping_pong_csi) == 0) 
+      {
 				list_del(cam->ready_q.next);
-				list_add_tail(&ready_frame->queue,
-					      &cam->working_q);
+				list_add_tail(&ready_frame->queue, &cam->working_q);
 				ready_frame->ipu_buf_num = cam->local_buf_num;
 			}
-	} else {
+    }
+	} 
+  else
+  {
 		if (cam->enc_update_eba)
-			cam->enc_update_eba(
-				cam->ipu, cam->dummy_frame.buffer.m.offset,
-				&cam->ping_pong_csi);
+    {
+      cam->enc_update_eba(cam->ipu, cam->dummy_frame.buffer.m.offset, &cam->ping_pong_csi);
+      pr_err("Warning: v4l2 capture: next frame going to dummy_frame buffer.\n");
+    }
 	}
 
 	cam->local_buf_num = (cam->local_buf_num == 0) ? 1 : 0;
@@ -3428,7 +3441,7 @@ static int mxc_v4l2_master_attach(struct v4l2_int_device *slave)
 		 __func__,
 		 cam->crop_current.width, cam->crop_current.height);
 
-	pr_info("%s: ipu%d:/csi%d %s attached %s:%s\n", __func__,
+	pr_err("%s: ipu%d:/csi%d %s attached %s:%s\n", __func__,
 		cam->ipu_id, cam->csi, cam->mipi_camera ? "mipi" : "parallel",
 		slave->name, slave->u.slave->master->name);
 	return 0;
