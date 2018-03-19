@@ -285,7 +285,7 @@ static int mxc_allocate_frame_buf(cam_data *cam, int count)
 	}
 
 	pr_debug("%s: size=%d\n", __func__, map_sizeimage);
-  pr_err("%s: count=%d, size=%d\n", __func__, count, map_sizeimage);
+  printk(KERN_ALERT "%s: count=%d, size=%d\n", __func__, count, map_sizeimage);
 
 	for (i = 0; i < count; i++) {
 		cam->frame[i].vaddress =
@@ -1671,7 +1671,7 @@ static int mxc_v4l2_s_param(cam_data *cam, struct v4l2_streamparm *parm)
 	pr_debug("%s\n", __func__);
 
 	if (parm->type != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
-		pr_err(KERN_ERR "mxc_v4l2_s_param invalid type\n");
+		pr_err("mxc_v4l2_s_param invalid type\n");
 		return -EINVAL;
 	}
 
@@ -1952,8 +1952,8 @@ static int mxc_v4l_open(struct file *file)
 		       __func__);
 		return -EBADF;
 	}
-	pr_debug("%s: %s ipu%d/csi%d\n", __func__, dev->name,
-		cam->ipu_id, cam->csi);
+
+	printk(KERN_ALERT "%s: %s ipu%d/csi%d\n", __func__, dev->name, cam->ipu_id, cam->csi);
 
 	down(&cam->busy_lock);
 
@@ -2896,7 +2896,7 @@ static void camera_callback(u32 mask, void *dev)
 
 		if (done_frame->ipu_buf_num != cam->local_buf_num)
     {
-      pr_err("Warning: v4l2 capture: Frame skipped due to Buffer num missmatch.\n");
+      printk(KERN_ALERT "Warning: v4l2 capture: Frame skipped due to Buffer num missmatch.\n");
 			goto next;
     }
 
@@ -2922,12 +2922,12 @@ static void camera_callback(u32 mask, void *dev)
 		} 
     else
     {
-			pr_err("ERROR: v4l2 capture: camera_callback: buffer not queued\n");
+			printk(KERN_ALERT "ERROR: v4l2 capture: camera_callback: buffer not queued\n");
     }
 	}
   else
   {
-    pr_err("Warning: v4l2 capture: Frame skipped due to working Queue empty.\n");
+    printk(KERN_ALERT "Warning: v4l2 capture: Frame skipped due to working Queue empty.\n");
   }
 
 next:
@@ -2949,7 +2949,7 @@ next:
 		if (cam->enc_update_eba)
     {
       cam->enc_update_eba(cam->ipu, cam->dummy_frame.buffer.m.offset, &cam->ping_pong_csi);
-      pr_err("Warning: v4l2 capture: next frame going to dummy_frame buffer.\n");
+      printk(KERN_ALERT "Warning: v4l2 capture: next frame going to dummy_frame buffer.\n");
     }
 	}
 
@@ -3441,7 +3441,7 @@ static int mxc_v4l2_master_attach(struct v4l2_int_device *slave)
 		 __func__,
 		 cam->crop_current.width, cam->crop_current.height);
 
-	pr_err("%s: ipu%d:/csi%d %s attached %s:%s\n", __func__,
+	printk(KERN_ALERT "%s: ipu%d:/csi%d %s attached %s:%s\n", __func__,
 		cam->ipu_id, cam->csi, cam->mipi_camera ? "mipi" : "parallel",
 		slave->name, slave->u.slave->master->name);
 	return 0;
