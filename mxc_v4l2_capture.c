@@ -276,24 +276,24 @@ static int mxc_allocate_frame_buf(cam_data *cam, int count)
 	u32 map_sizeimage;
 	struct sensor_data *sensor = cam->sensor->priv;
 
-	if (sensor && sensor->adata) {
+	if (sensor && sensor->adata) 
+  {
 		const struct additional_data *adata = sensor->adata;
 		map_sizeimage = adata->map_sizeimage;
 	}
-	else {
+	else 
+  {
 		map_sizeimage = cam->v2f.fmt.pix.sizeimage;
 	}
 
 	pr_debug("%s: size=%d\n", __func__, map_sizeimage);
-  printk(KERN_ALERT "%s: count=%d, size=%d\n", __func__, count, map_sizeimage);
+  printk(KERN_ALERT "mxc_allocate_frame_buf: count=%d, size=%d\n", count, map_sizeimage);
 
-	for (i = 0; i < count; i++) {
-		cam->frame[i].vaddress =
-		    dma_alloc_coherent(0,
-				       PAGE_ALIGN(map_sizeimage),
-				       &cam->frame[i].paddress,
-				       GFP_DMA | GFP_KERNEL);
-		if (cam->frame[i].vaddress == 0) {
+	for (i = 0; i < count; i++) 
+  {
+		cam->frame[i].vaddress = dma_alloc_coherent(0, PAGE_ALIGN(map_sizeimage), &cam->frame[i].paddress, GFP_DMA | GFP_KERNEL);
+		if (cam->frame[i].vaddress == 0) 
+    {
 			pr_err("%s: failed.\n", __func__);
 			mxc_free_frame_buf(cam);
 			return -ENOBUFS;
@@ -2154,6 +2154,8 @@ static ssize_t mxc_v4l_read(struct file *file, char *buf, size_t count,
 				       &cam->still_buf[1],
 				       GFP_DMA | GFP_KERNEL);
 
+  printk(KERN_ALERT "%s: count: 2, size: %d\n", __func__, cam->v2f.fmt.pix.sizeimage);
+
 	if (!v_address[0] || !v_address[1]) {
 		err = -ENOBUFS;
 		goto exit0;
@@ -2280,25 +2282,27 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 	/*!
 	 * V4l2 VIDIOC_REQBUFS ioctl
 	 */
-	case VIDIOC_REQBUFS: {
+	case VIDIOC_REQBUFS: 
+  {
 		struct v4l2_requestbuffers *req = arg;
-		pr_debug("   case VIDIOC_REQBUFS\n");
+		printk(KERN_ALERT "case VIDIOC_REQBUFS\n");
 
-		if (req->count > FRAME_NUM) {
-			pr_err("ERROR: v4l2 capture: VIDIOC_REQBUFS: "
-			       "not enough buffers\n");
+		if (req->count > FRAME_NUM) 
+    {
+			pr_err("ERROR: v4l2 capture: VIDIOC_REQBUFS: not enough buffers\n");
 			req->count = FRAME_NUM;
 		}
 
-		if ((req->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)) {
-			pr_err("ERROR: v4l2 capture: VIDIOC_REQBUFS: "
-			       "wrong buffer type\n");
+		if ((req->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)) 
+    {
+			pr_err("ERROR: v4l2 capture: VIDIOC_REQBUFS: wrong buffer type\n");
 			retval = -EINVAL;
 			break;
 		}
 
 		mxc_streamoff(cam);
-		if (req->memory & V4L2_MEMORY_MMAP) {
+		if (req->memory & V4L2_MEMORY_MMAP) 
+    {
 			mxc_free_frame_buf(cam);
 			retval = mxc_allocate_frame_buf(cam, req->count);
 		}
@@ -2308,26 +2312,28 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 	/*!
 	 * V4l2 VIDIOC_QUERYBUF ioctl
 	 */
-	case VIDIOC_QUERYBUF: {
+	case VIDIOC_QUERYBUF: 
+  {
 		struct v4l2_buffer *buf = arg;
 		int index = buf->index;
-		pr_debug("   case VIDIOC_QUERYBUF\n");
+		printk(KERN_ALERT "case VIDIOC_QUERYBUF\n");
 
-		if (buf->type != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
-			pr_err("ERROR: v4l2 capture: "
-			       "VIDIOC_QUERYBUFS: "
-			       "wrong buffer type\n");
+		if (buf->type != V4L2_BUF_TYPE_VIDEO_CAPTURE) 
+    {
+			pr_err("ERROR: v4l2 capture: VIDIOC_QUERYBUFS: wrong buffer type\n");
 			retval = -EINVAL;
 			break;
 		}
 
-		if (buf->memory & V4L2_MEMORY_MMAP) {
+		if (buf->memory & V4L2_MEMORY_MMAP) 
+    {
 			memset(buf, 0, sizeof(buf));
 			buf->index = index;
 		}
 
 		down(&cam->param_lock);
-		if (buf->memory & V4L2_MEMORY_USERPTR) {
+		if (buf->memory & V4L2_MEMORY_USERPTR) 
+    {
 			mxc_v4l2_release_bufs(cam);
 			retval = mxc_v4l2_prepare_bufs(cam, buf);
 		}
@@ -2345,7 +2351,7 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
   {
 		struct v4l2_buffer *buf = arg;
 		int index = buf->index;
-		pr_debug("   case VIDIOC_QBUF\n");
+		printk(KERN_ALERT "case VIDIOC_QBUF\n");
 
 		spin_lock_irqsave(&cam->queue_int_lock, lock_flags);
 		if ((cam->frame[index].buffer.flags & 0x7) == V4L2_BUF_FLAG_MAPPED) 
@@ -2378,9 +2384,10 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 	/*!
 	 * V4l2 VIDIOC_DQBUF ioctl
 	 */
-	case VIDIOC_DQBUF: {
+	case VIDIOC_DQBUF: 
+  {
 		struct v4l2_buffer *buf = arg;
-		pr_debug("   case VIDIOC_DQBUF\n");
+		printk(KERN_ALERT "case VIDIOC_DQBUF\n");
 
 		if ((cam->enc_counter == 0) &&
 			(file->f_flags & O_NONBLOCK)) {
@@ -2980,7 +2987,7 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	struct v4l2_device *v4l2_dev;
 	static int camera_id;
 
-	pr_debug("%s\n", __func__);
+	printk(KERN_ALERT "%s\n", __func__);
 
 	ret = of_property_read_u32(np, "ipu_id", &ipu_id);
 	if (ret) {
@@ -3107,12 +3114,11 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	spin_lock_init(&cam->queue_int_lock);
 	spin_lock_init(&cam->dqueue_int_lock);
 
-	cam->dummy_frame.vaddress = dma_alloc_coherent(0,
-			       SZ_8M, &cam->dummy_frame.paddress,
-			       GFP_DMA | GFP_KERNEL);
+	cam->dummy_frame.vaddress = dma_alloc_coherent(0, PAGE_ALIGN(SZ_16M), &cam->dummy_frame.paddress, GFP_DMA | GFP_KERNEL);
 	if (cam->dummy_frame.vaddress == 0)
-		pr_err("ERROR: v4l2 capture: Allocate dummy frame "
-		       "failed.\n");
+  {
+		pr_err("ERROR: v4l2 capture: Allocate dummy frame failed.\n");
+  }
 	cam->dummy_frame.buffer.length = SZ_8M;
 
 	cam->self = kmalloc(sizeof(struct v4l2_int_device), GFP_KERNEL);
