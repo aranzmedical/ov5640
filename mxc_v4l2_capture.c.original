@@ -287,7 +287,7 @@ static int mxc_allocate_frame_buf(cam_data *cam, int count)
 		    dma_alloc_coherent(0,
 				       PAGE_ALIGN(map_sizeimage),
 				       &cam->frame[i].paddress,
-				       GFP_DMA | GFP_ATOMIC);
+				       GFP_DMA | GFP_KERNEL);
 		if (cam->frame[i].vaddress == 0) {
 			pr_err("%s: failed.\n", __func__);
 			mxc_free_frame_buf(cam);

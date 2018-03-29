@@ -48,6 +48,8 @@
 #include "mxc_v4l2_capture.h"
 #include "ipu_prp_sw.h"
 
+#define ARANZ_DEBUG
+
 #define init_MUTEX(sem)         sema_init(sem, 1)
 
 #define V4L2_CID_DRIVER_BASE            (V4L2_CID_USER_BASE | 0x1001)
@@ -234,6 +236,7 @@ static struct v4l2_int_master mxc_v4l2_master = {
 };
 
 #ifdef ARANZ_DEBUG
+/*********************************************************************************************************************/
 static void mxc_print_llist(struct list_head *llist)
 {
   struct list_head *node;
@@ -264,6 +267,7 @@ static void mxc_print_llist(struct list_head *llist)
  * Functions for handling Frame buffers.
  **************************************************************************/
 
+/*********************************************************************************************************************/
 /*!
  * Free frame buffers
  *
@@ -294,6 +298,7 @@ static int mxc_free_frame_buf(cam_data *cam)
 
 static void mxc_free_frames(cam_data *cam);
 
+/*********************************************************************************************************************/
 /*!
  * Allocate frame buffers
  *
@@ -349,7 +354,7 @@ static int mxc_allocate_frame_buf(cam_data *cam, int count)
 
 	if (cam->dummy_frame.vaddress == 0)
   {
-    cam->dummy_frame.vaddress = dma_alloc_coherent(0, PAGE_ALIGN(SZ_16M), &cam->dummy_frame.paddress, GFP_DMA | GFP_KERNEL);
+    cam->dummy_frame.vaddress = dma_alloc_coherent(0, PAGE_ALIGN(SZ_16M), &cam->dummy_frame.paddress, GFP_DMA | GFP_ATOMIC);
     cam->dummy_frame.buffer.length = SZ_16M;
 
 #ifdef ARANZ_DEBUG
@@ -360,6 +365,7 @@ static int mxc_allocate_frame_buf(cam_data *cam, int count)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 /*!
  * Free frame buffers status
  *
@@ -387,6 +393,7 @@ static void mxc_free_frames(cam_data *cam)
 	INIT_LIST_HEAD(&cam->done_q);
 }
 
+/*********************************************************************************************************************/
 /*!
  * Return the buffer status
  *
@@ -409,12 +416,14 @@ static int mxc_v4l2_buffer_status(cam_data *cam, struct v4l2_buffer *buf)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 static int mxc_v4l2_release_bufs(cam_data *cam)
 {
 	pr_debug("%s\n", __func__);
 	return 0;
 }
 
+/*********************************************************************************************************************/
 static int mxc_v4l2_prepare_bufs(cam_data *cam, struct v4l2_buffer *buf)
 {
 #ifdef ARANZ_DEBUG
@@ -443,6 +452,7 @@ static int mxc_v4l2_prepare_bufs(cam_data *cam, struct v4l2_buffer *buf)
  * Functions for handling the video stream.
  **************************************************************************/
 
+/*********************************************************************************************************************/
 /*!
  * Indicates whether the palette is supported.
  *
@@ -466,6 +476,7 @@ static inline int valid_mode(u32 palette)
 		 palette == V4L2_PIX_FMT_SBGGR8));
 }
 
+/*********************************************************************************************************************/
 /*!
  * Start the encoder job
  *
@@ -574,6 +585,7 @@ static int mxc_streamon(cam_data *cam)
 	return err;
 }
 
+/*********************************************************************************************************************/
 /*!
  * Shut down the encoder job
  *
@@ -619,6 +631,7 @@ static int mxc_streamoff(cam_data *cam)
 	return err;
 }
 
+/*********************************************************************************************************************/
 /*!
  * Valid and adjust the overlay window size, position
  *
@@ -755,6 +768,7 @@ static int verify_preview(cam_data *cam, struct v4l2_window *win)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 /*!
  * start the viewfinder job
  *
@@ -808,6 +822,7 @@ static int start_preview(cam_data *cam)
 	return err;
 }
 
+/*********************************************************************************************************************/
 /*!
  * shut down the viewfinder job
  *
@@ -851,6 +866,7 @@ static int stop_preview(cam_data *cam)
  * VIDIOC Functions.
  **************************************************************************/
 
+/*********************************************************************************************************************/
 /*!
  * V4L2 - mxc_v4l2_g_fmt function
  *
@@ -896,6 +912,7 @@ static int mxc_v4l2_g_fmt(cam_data *cam, struct v4l2_format *f)
 	return retval;
 }
 
+/*********************************************************************************************************************/
 /*!
  * V4L2 - mxc_v4l2_s_fmt function
  *
@@ -1079,6 +1096,7 @@ static int mxc_v4l2_s_fmt(cam_data *cam, struct v4l2_format *f, bool try_fmt)
 	return retval;
 }
 
+/*********************************************************************************************************************/
 static int mxc_v4l2_query_ctrl(cam_data *cam, struct v4l2_queryctrl *qc)
 {
         int status = 0;
@@ -1093,6 +1111,7 @@ static int mxc_v4l2_query_ctrl(cam_data *cam, struct v4l2_queryctrl *qc)
         return status;
 }
 
+/*********************************************************************************************************************/
 /*!
  * get control param
  *
@@ -1267,6 +1286,7 @@ static int mxc_v4l2_g_ctrl(cam_data *cam, struct v4l2_control *c)
 	return status;
 }
 
+/*********************************************************************************************************************/
 static int mxc_v4l2_send_command(cam_data *cam,
 		struct v4l2_send_command_control *c) {
 	int ret =0;
@@ -1277,6 +1297,7 @@ static int mxc_v4l2_send_command(cam_data *cam,
 	return ret;
 }
 
+/*********************************************************************************************************************/
 /*!
  * V4L2 - set_control function
  *          V4L2_CID_PRIVATE_BASE is the extention for IPU preprocessing.
@@ -1299,37 +1320,8 @@ static int mxc_v4l2_s_ctrl(cam_data *cam, struct v4l2_control *c)
 
 	pr_debug("%s\n", __func__);
 
-	switch (c->id) {
-//	case V4L2_CID_HFLIP:
-//		/* This is done by the IPU */
-//		if (c->value == 1) {
-//			if ((cam->rotation != IPU_ROTATE_VERT_FLIP) &&
-//			    (cam->rotation != IPU_ROTATE_180))
-//				cam->rotation = IPU_ROTATE_HORIZ_FLIP;
-//			else
-//				cam->rotation = IPU_ROTATE_180;
-//		} else {
-//			if (cam->rotation == IPU_ROTATE_HORIZ_FLIP)
-//				cam->rotation = IPU_ROTATE_NONE;
-//			if (cam->rotation == IPU_ROTATE_180)
-//				cam->rotation = IPU_ROTATE_VERT_FLIP;
-//		}
-//		break;
-//	case V4L2_CID_VFLIP:
-//		/* This is done by the IPU */
-//		if (c->value == 1) {
-//			if ((cam->rotation != IPU_ROTATE_HORIZ_FLIP) &&
-//			    (cam->rotation != IPU_ROTATE_180))
-//				cam->rotation = IPU_ROTATE_VERT_FLIP;
-//			else
-//				cam->rotation = IPU_ROTATE_180;
-//		} else {
-//			if (cam->rotation == IPU_ROTATE_VERT_FLIP)
-//				cam->rotation = IPU_ROTATE_NONE;
-//			if (cam->rotation == IPU_ROTATE_180)
-//				cam->rotation = IPU_ROTATE_HORIZ_FLIP;
-//		}
-//		break;
+	switch (c->id) 
+  {
 	case V4L2_CID_MXC_ROT:
 	case V4L2_CID_MXC_VF_ROT:
 		/* This is done by the IPU */
@@ -1571,6 +1563,7 @@ static int mxc_v4l2_s_ctrl(cam_data *cam, struct v4l2_control *c)
 	return ret;
 }
 
+/*********************************************************************************************************************/
 void setup_ifparm(cam_data *cam, int init_defrect)
 {
 	struct v4l2_format cam_fmt;
@@ -1738,6 +1731,7 @@ void setup_ifparm(cam_data *cam, int init_defrect)
 			       csi_param.data_fmt, csi_param);
 }
 
+/*********************************************************************************************************************/
 /*!
  * V4L2 - mxc_v4l2_s_param function
  * Allows setting of capturemode and frame rate.
@@ -1812,6 +1806,7 @@ exit:
 	return err;
 }
 
+/*********************************************************************************************************************/
 /*!
  * V4L2 - mxc_v4l2_s_std function
  *
@@ -1863,6 +1858,7 @@ static int mxc_v4l2_s_std(cam_data *cam, v4l2_std_id e)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 /*!
  * V4L2 - mxc_v4l2_g_std function
  *
@@ -1903,6 +1899,7 @@ static int mxc_v4l2_g_std(cam_data *cam, v4l2_std_id *e)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 /*!
  * Dequeue one V4L capture buffer
  *
@@ -1995,7 +1992,7 @@ void power_up_camera(cam_data *cam)
 	cam->power_on = 1;
 }
 
-
+/*********************************************************************************************************************/
 void power_off_camera(cam_data *cam)
 {
 	schedule_delayed_work(&cam->power_down_work, (HZ * 2));
@@ -2003,6 +2000,7 @@ void power_off_camera(cam_data *cam)
 
 unsigned long csi_in_use;
 
+/*********************************************************************************************************************/
 /*!
  * V4L interface - open function
  *
@@ -2116,6 +2114,7 @@ oops:
 	return err;
 }
 
+/*********************************************************************************************************************/
 /*!
  * V4L interface - close function
  *
@@ -2205,6 +2204,8 @@ static int mxc_v4l_close(struct file *file)
 #if defined(CONFIG_MXC_IPU_PRP_ENC) || defined(CONFIG_MXC_IPU_CSI_ENC) || \
     defined(CONFIG_MXC_IPU_PRP_ENC_MODULE) || \
     defined(CONFIG_MXC_IPU_CSI_ENC_MODULE)
+
+/*********************************************************************************************************************/
 /*
  * V4L interface - read function
  *
@@ -2233,12 +2234,12 @@ static ssize_t mxc_v4l_read(struct file *file, char *buf, size_t count,
 	v_address[0] = dma_alloc_coherent(0,
 				       PAGE_ALIGN(cam->v2f.fmt.pix.sizeimage),
 				       &cam->still_buf[0],
-				       GFP_DMA | GFP_KERNEL);
+				       GFP_DMA | GFP_ATOMIC);
 
 	v_address[1] = dma_alloc_coherent(0,
 				       PAGE_ALIGN(cam->v2f.fmt.pix.sizeimage),
 				       &cam->still_buf[1],
-				       GFP_DMA | GFP_KERNEL);
+				       GFP_DMA | GFP_ATOMIC);
 
 	if (!v_address[0] || !v_address[1]) {
 		err = -ENOBUFS;
@@ -2292,6 +2293,7 @@ exit0:
 }
 #endif
 
+/*********************************************************************************************************************/
 /*!
  * V4L interface - ioctl function
  *
@@ -2304,8 +2306,7 @@ exit0:
  * @return           0 success, ENODEV for invalid device instance,
  *                   -1 for other errors.
  */
-static long mxc_v4l_do_ioctl(struct file *file,
-			    unsigned int ioctlnr, void *arg)
+static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 {
 	struct video_device *dev = video_devdata(file);
 	cam_data *cam = video_get_drvdata(dev);
@@ -2820,28 +2821,51 @@ static long mxc_v4l_do_ioctl(struct file *file,
 		}
 		break;
 	}
-	case VIDIOC_DBG_G_CHIP_IDENT: {
+	case VIDIOC_DBG_G_CHIP_IDENT: 
+  {
 		struct v4l2_dbg_chip_ident *p = arg;
 		p->ident = V4L2_IDENT_NONE;
 		p->revision = 0;
 		if (cam->sensor)
 			retval = vidioc_int_g_chip_ident(cam->sensor, (int *)p);
-		else {
+		else 
+    {
 			pr_err("ERROR: v4l2 capture: slave not found!\n");
 			retval = -ENODEV;
 		}
 		break;
 	}
 
-	case VIDIOC_SEND_COMMAND: {
+	case VIDIOC_SEND_COMMAND: 
+  {
 		retval = mxc_v4l2_send_command(cam, arg);
 		break;
 	}
 
 	case VIDIOC_QUERYCTRL:
+  {
 		pr_debug(" case VIDIOC_QUERY_CTRL\n");
 		retval = mxc_v4l2_query_ctrl(cam, arg);
 		break;
+  }
+
+  case VIDIOC_ARANZ_SEQ1:
+  {
+#ifdef ARANZ_DEBUG
+    printk(KERN_ALERT "VIDIOC_ARANZ_SEQ1\n");
+#endif
+    retval = 0;
+    break;
+  }
+
+  case VIDIOC_ARANZ_SEQ2:
+  {
+#ifdef ARANZ_DEBUG
+    printk(KERN_ALERT "VIDIOC_ARANZ_SEQ2\n");
+#endif
+    retval = 0;
+    break;
+  }
 
 	/* XXX: workaround for gstreamer */
 /*	case VIDIOC_TRY_FMT: */
@@ -2860,6 +2884,7 @@ static long mxc_v4l_do_ioctl(struct file *file,
 	return retval;
 }
 
+/*********************************************************************************************************************/
 /*
  * V4L interface - ioctl function
  *
@@ -2872,6 +2897,7 @@ static long mxc_v4l_ioctl(struct file *file, unsigned int cmd,
 	return video_usercopy(file, cmd, arg, mxc_v4l_do_ioctl);
 }
 
+/*********************************************************************************************************************/
 /*!
  * V4L interface - mmap function
  *
@@ -2913,6 +2939,7 @@ mxc_mmap_exit:
 	return res;
 }
 
+/*********************************************************************************************************************/
 /*!
  * V4L interface - poll function
  *
@@ -2942,6 +2969,7 @@ static unsigned int mxc_poll(struct file *file, struct poll_table_struct *wait)
 	return res;
 }
 
+/*********************************************************************************************************************/
 /*!
  * This structure defines the functions to be called in this driver.
  */
@@ -2961,6 +2989,7 @@ static struct video_device mxc_v4l_template = {
 	.release = video_device_release,
 };
 
+/*********************************************************************************************************************/
 /*!
  * This function can be used to release any platform data on closing.
  */
@@ -2968,6 +2997,7 @@ static void camera_platform_release(struct device *device)
 {
 }
 
+/*********************************************************************************************************************/
 /*!
  * Camera V4l2 callback function.
  *
@@ -3095,6 +3125,7 @@ next:
 	return;
 }
 
+/*********************************************************************************************************************/
 /*!
  * initialize cam_data structure
  *
@@ -3239,7 +3270,7 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	spin_lock_init(&cam->queue_int_lock);
 	spin_lock_init(&cam->dqueue_int_lock);
 
-	cam->dummy_frame.vaddress = dma_alloc_coherent(0, SZ_8M, &cam->dummy_frame.paddress, GFP_DMA | GFP_KERNEL);
+	cam->dummy_frame.vaddress = dma_alloc_coherent(0, SZ_8M, &cam->dummy_frame.paddress, GFP_DMA | GFP_ATOMIC);
 	if (cam->dummy_frame.vaddress == 0)
   {
 		pr_err("ERROR: v4l2 capture: Allocate dummy frame failed.\n");
@@ -3259,8 +3290,8 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	return 0;
 }
 
-static ssize_t show_streaming(struct device *dev,
-			struct device_attribute *attr, char *buf)
+/*********************************************************************************************************************/
+static ssize_t show_streaming(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct video_device *video_dev = container_of(dev,
 						struct video_device, dev);
@@ -3273,8 +3304,8 @@ static ssize_t show_streaming(struct device *dev,
 }
 static DEVICE_ATTR(fsl_v4l2_capture_property, S_IRUGO, show_streaming, NULL);
 
-static ssize_t show_overlay(struct device *dev,
-			struct device_attribute *attr, char *buf)
+/*********************************************************************************************************************/
+static ssize_t show_overlay(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct video_device *video_dev = container_of(dev,
 						struct video_device, dev);
@@ -3287,6 +3318,7 @@ static ssize_t show_overlay(struct device *dev,
 }
 static DEVICE_ATTR(fsl_v4l2_overlay_property, S_IRUGO, show_overlay, NULL);
 
+/*********************************************************************************************************************/
 static ssize_t show_csi(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
@@ -3298,6 +3330,7 @@ static ssize_t show_csi(struct device *dev,
 }
 static DEVICE_ATTR(fsl_csi_property, S_IRUGO, show_csi, NULL);
 
+/*********************************************************************************************************************/
 /*!
  * This function is called to probe the devices if registered.
  *
@@ -3368,6 +3401,7 @@ static int mxc_v4l2_probe(struct platform_device *pdev)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 /*!
  * This function is called to remove the devices when device unregistered.
  *
@@ -3417,6 +3451,7 @@ static int mxc_v4l2_remove(struct platform_device *pdev)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 /*!
  * This function is called to put the sensor in a low power state.
  * Refer to the document driver-model/driver.txt in the kernel source tree
@@ -3461,6 +3496,7 @@ static int mxc_v4l2_suspend(struct platform_device *pdev, pm_message_t state)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 /*!
  * This function is called to bring the sensor back from a low power state.
  * Refer to the document driver-model/driver.txt in the kernel source tree
@@ -3506,6 +3542,7 @@ static int mxc_v4l2_resume(struct platform_device *pdev)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 /*!
  * This structure contains pointers to the power management callback functions.
  */
@@ -3523,6 +3560,7 @@ static struct platform_driver mxc_v4l2_driver = {
 	.shutdown = NULL,
 };
 
+/*********************************************************************************************************************/
 /*!
  * Initializes the camera driver.
  */
@@ -3617,6 +3655,7 @@ static int mxc_v4l2_master_attach(struct v4l2_int_device *slave)
 	return 0;
 }
 
+/*********************************************************************************************************************/
 /*!
  * Disconnects the camera driver.
  */
@@ -3647,20 +3686,24 @@ static void mxc_v4l2_master_detach(struct v4l2_int_device *slave)
 	vidioc_int_dev_exit(slave);
 }
 
+/*********************************************************************************************************************/
 DEFINE_MUTEX(camera_common_mutex);
 
+/*********************************************************************************************************************/
 void mxc_camera_common_lock(void)
 {
 	mutex_lock(&camera_common_mutex);
 }
 EXPORT_SYMBOL(mxc_camera_common_lock);
 
+/*********************************************************************************************************************/
 void mxc_camera_common_unlock(void)
 {
 	mutex_unlock(&camera_common_mutex);
 }
 EXPORT_SYMBOL(mxc_camera_common_unlock);
 
+/*********************************************************************************************************************/
 /*!
  * Entry point for the V4L2
  *
@@ -3674,15 +3717,16 @@ static __init int camera_init(void)
 
 	/* Register the device driver structure. */
 	err = platform_driver_register(&mxc_v4l2_driver);
-	if (err != 0) {
-		pr_err("ERROR: v4l2 capture:camera_init: "
-			"platform_driver_register failed.\n");
+	if (err != 0) 
+  {
+		pr_err("ERROR: v4l2 capture:camera_init: platform_driver_register failed.\n");
 		return err;
 	}
 
 	return err;
 }
 
+/*********************************************************************************************************************/
 /*!
  * Exit and cleanup for the V4L2
  */

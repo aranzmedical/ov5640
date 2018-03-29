@@ -126,7 +126,7 @@ struct ov5640_mode_info {
  */
 static struct sensor_data ov5640_data;
 static int pwn_gpio, rst_gpio; //, settings_gpio;
-static int settings_gpio_state = 0;
+//static int settings_gpio_state = 0;
 
 static struct reg_value ov5640_init_setting_30fps_VGA[] = {
 
@@ -786,19 +786,19 @@ static struct i2c_driver ov5640_i2c_driver = {
 	.id_table = ov5640_id,
 };
 
-static void settings_toggle(void)
-{
-  if (settings_gpio_state)
-  {
-		//gpio_set_value(settings_gpio, 0);
-    settings_gpio_state = 0;
-  }
-	else
-  {
-		//gpio_set_value(settings_gpio, 1);
-    settings_gpio_state = 1;
-  }
-}
+// static void settings_toggle(void)
+// {
+//   if (settings_gpio_state)
+//   {
+// 		//gpio_set_value(settings_gpio, 0);
+//     settings_gpio_state = 0;
+//   }
+// 	else
+//   {
+// 		//gpio_set_value(settings_gpio, 1);
+//     settings_gpio_state = 1;
+//   }
+// }
 
 static void ov5640_standby(s32 enable)
 {
