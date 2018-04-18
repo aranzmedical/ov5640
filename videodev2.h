@@ -1254,6 +1254,13 @@ struct v4l2_send_command_control {
 	char	     	 debug[256];
 };
 
+struct v4l2_seq_control {
+	__u32		     textureGain;
+	__u32		     laserGain;
+	__u32		     textureExposure;
+	__u32	     	 laserExposure;
+};
+
 #define V4L2_CTRL_ID_MASK      	  (0x0fffffff)
 #define V4L2_CTRL_ID2CLASS(id)    ((id) & 0x0fff0000UL)
 #define V4L2_CTRL_DRIVER_PRIV(id) (((id) & 0xffff) >= 0x1000)
@@ -1937,6 +1944,14 @@ struct v4l2_create_buffers {
 #define VIDIOC_ENCODER_CMD      _IOWR('V', 77, struct v4l2_encoder_cmd)
 #define VIDIOC_TRY_ENCODER_CMD  _IOWR('V', 78, struct v4l2_encoder_cmd)
 
+//ARANZ Extention
+#define VIDIOC_SEND_COMMAND	_IOWR('V', 191, struct v4l2_send_command_control)
+
+#define VIDIOC_LIGHTING_CTRL _IOW('V', 190, int)
+
+#define VIDIOC_IMAGE_SEQ1	_IOW('V', 189, struct v4l2_seq_control)
+#define VIDIOC_IMAGE_SEQ2	_IOW('V', 188, struct v4l2_seq_control)
+
 /* Experimental, meant for debugging, testing and internal use.
    Only implemented if CONFIG_VIDEO_ADV_DEBUG is defined.
    You must be root to use these ioctls. Never use these in applications! */
@@ -1984,11 +1999,6 @@ struct v4l2_create_buffers {
 /* Experimental, meant for debugging, testing and internal use.
    Never use these in applications! */
 #define VIDIOC_DBG_G_CHIP_INFO  _IOWR('V', 102, struct v4l2_dbg_chip_info)
-
-#define VIDIOC_SEND_COMMAND	_IOWR('V', 103, struct v4l2_send_command_control)
-
-#define VIDIOC_ARANZ_SEQ1	_IOW('V', 500, int)
-#define VIDIOC_ARANZ_SEQ2	_IOW('V', 501, int)
 
 /* Reminder: when adding new ioctls please add support for them to
    drivers/media/video/v4l2-compat-ioctl32.c as well! */

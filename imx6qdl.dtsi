@@ -761,10 +761,40 @@
 				interrupts = <0 56 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
-			epit2: epit@020d4000 { /* EPIT2 */
-				reg = <0x020d4000 0x4000>;
-				interrupts = <0 57 IRQ_TYPE_LEVEL_HIGH>;
-			};
+      v4l2_cap_0: v4l2_cap_0@020d4000 { /* EPIT2 */
+        compatible = "fsl,imx6q-v4l2-capture";
+        reg = <0x20d4000 0x4000>;
+        interrupts = <0 57 IRQ_TYPE_LEVEL_HIGH>;
+        interrupt-names = "epit2";
+        clocks = <&clks IMX6QDL_CLK_IPG>, <&clks IMX6QDL_CLK_EPIT2>;
+        clock-names = "ipg", "per";
+        ipu_id = <0>;
+        csi_id = <0>;
+        mclk_source = <0>;
+        mipi_camera = <1>;
+        default_input = <1>;
+
+        //GPIOs
+        gpio_io3       = <&gpio3 10 GPIO_ACTIVE_HIGH>;
+        gpio_io4       = <&gpio3 11 GPIO_ACTIVE_HIGH>;
+        gpio_HREF      = <&gpio7 9 GPIO_ACTIVE_HIGH>;
+        gpio_LED_EN    = <&gpio6 6 GPIO_ACTIVE_HIGH>;
+        gpio_LASER2    = <&gpio2 16 GPIO_ACTIVE_HIGH>;
+        gpio_LASER3    = <&gpio2 17 GPIO_ACTIVE_HIGH>;
+        gpio_LED2_EN   = <&gpio2 19 GPIO_ACTIVE_HIGH>;
+        gpio_LASER1    = <&gpio2 20 GPIO_ACTIVE_HIGH>;
+        gpio_LED1_EN   = <&gpio2 21 GPIO_ACTIVE_HIGH>;
+        gpio_FLEN      = <&gpio2 22 GPIO_ACTIVE_HIGH>;
+        gpio_LED_CUR1  = <&gpio3 12 GPIO_ACTIVE_HIGH>;
+        gpio_LED_CUR2  = <&gpio3 15 GPIO_ACTIVE_HIGH>;
+        gpio_CHARGE_EN = <&gpio3 2 GPIO_ACTIVE_HIGH>;
+
+        status = "okay";
+      };
+
+	leds: leds {
+		compatible = "gpio-leds";
+	};
 
 			src: src@020d8000 {
 				compatible = "fsl,imx6q-src", "fsl,imx51-src";

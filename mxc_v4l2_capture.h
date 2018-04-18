@@ -104,6 +104,13 @@ struct camera_sensor {
 	unsigned int csi;
 };
 
+struct v4l2_seq_settings {
+	uint32_t		     textureGain;
+	uint32_t		     laserGain;
+	uint32_t		     textureExposure;
+	uint32_t	     	 laserExposure;
+};
+
 /*!
  * common v4l2 driver structure.
  */
@@ -250,6 +257,37 @@ typedef struct _cam_data {
 	int effects;
 	int pattern;
 	int sharpness;
+
+  struct resource* epit_res;
+  void __iomem* epit_base;
+  struct clk* epit_clk_per;
+  struct clk* epit_clk_ipg;
+  int epit_irq;
+  int href_irq;
+  
+  unsigned gpio_io3;
+  unsigned gpio_io3_state;
+  unsigned gpio_io4;
+  unsigned gpio_io4_state;
+  unsigned gpio_HREF;
+  unsigned gpio_LED_EN;
+  unsigned gpio_LASER2;
+  unsigned gpio_LASER3;
+  unsigned gpio_LED2_EN;
+  unsigned gpio_LASER1;
+  unsigned gpio_LED1_EN;
+  unsigned gpio_FLEN;
+  unsigned gpio_LED_CUR1;
+  unsigned gpio_LED_CUR2;
+  unsigned gpio_CHARGE_EN;
+
+  bool flashTest;
+  unsigned flashTestCount;
+
+  unsigned mode;
+  unsigned stateMachineIndex;
+  struct v4l2_seq_settings seq_settings;
+
 } cam_data;
 
 struct additional_data {

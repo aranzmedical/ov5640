@@ -20,8 +20,13 @@
  */
 #include <linux/version.h>
 #include <linux/module.h>
-#include <linux/init.h>
+#include <linux/init.h>      // initialization macros
+#include <linux/module.h>    // dynamic loading of modules into the kernel
+#include <linux/kernel.h>    // kernel stuff
+#include <linux/gpio.h>      // GPIO functions/macros
+#include <linux/interrupt.h> // interrupt functions/macros
 #include <linux/platform_device.h>
+#include <linux/of_gpio.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/ctype.h>
@@ -48,6 +53,34 @@
 #include "mxc_v4l2_capture.h"
 #include "ipu_prp_sw.h"
 
+#define EPITCR		0x00
+#define EPITSR		0x04
+#define EPITLR		0x08
+#define EPITCMPR	0x0c
+#define EPITCNR		0x10
+
+#define EPITCR_EN			(1 << 0)
+#define EPITCR_ENMOD			(1 << 1)
+#define EPITCR_OCIEN			(1 << 2)
+#define EPITCR_RLD			(1 << 3)
+#define EPITCR_PRESC(x)			(((x) & 0xfff) << 4)
+#define EPITCR_SWR			(1 << 16)
+#define EPITCR_IOVW			(1 << 17)
+#define EPITCR_DBGEN			(1 << 18)
+#define EPITCR_WAITEN			(1 << 19)
+#define EPITCR_RES			(1 << 20)
+#define EPITCR_STOPEN			(1 << 21)
+#define EPITCR_OM_DISCON		(0 << 22)
+#define EPITCR_OM_TOGGLE		(1 << 22)
+#define EPITCR_OM_CLEAR			(2 << 22)
+#define EPITCR_OM_SET			(3 << 22)
+#define EPITCR_CLKSRC_OFF		(0 << 24)
+#define EPITCR_CLKSRC_PERIPHERAL	(1 << 24)
+#define EPITCR_CLKSRC_REF_HIGH		(2 << 24)
+#define EPITCR_CLKSRC_REF_LOW		(3 << 24)
+
+#define EPITSR_OCIF			(1 << 0)
+
 #define ARANZ_DEBUG
 
 #define init_MUTEX(sem)         sema_init(sem, 1)
@@ -55,6 +88,10 @@
 #define V4L2_CID_DRIVER_BASE            (V4L2_CID_USER_BASE | 0x1001)
 //#define V4L2_CID_TEST_PATTERN           (V4L2_CID_DRIVER_BASE + 0)
 #define V4L2_CID_FOCUS_TRIGGER          (V4L2_CID_DRIVER_BASE + 1)
+
+#define V4L2_MODE_NORMAL          0
+#define V4L2_MODE_SEQ1            1
+#define V4L2_MODE_SEQ2            2
 
 static struct platform_device_id imx_v4l2_devtype[] = {
 	{
@@ -228,6 +265,8 @@ static int mxc_v4l2_master_attach(struct v4l2_int_device *slave);
 static void mxc_v4l2_master_detach(struct v4l2_int_device *slave);
 static int start_preview(cam_data *cam);
 static int stop_preview(cam_data *cam);
+static void start_epit(cam_data *cam);
+static void stop_epit(cam_data *cam);
 
 /*! Information about this driver. */
 static struct v4l2_int_master mxc_v4l2_master = {
@@ -235,33 +274,63 @@ static struct v4l2_int_master mxc_v4l2_master = {
 	.detach = mxc_v4l2_master_detach,
 };
 
-#ifdef ARANZ_DEBUG
-/*********************************************************************************************************************/
-static void mxc_print_llist(struct list_head *llist)
-{
-  struct list_head *node;
-  struct mxc_v4l_frame *frame;
-  int index = 0;
+// #ifdef ARANZ_DEBUG
+// /*********************************************************************************************************************/
+// static void mxc_print_llist(struct list_head *llist)
+// {
+//   struct list_head *node;
+//   struct mxc_v4l_frame *frame;
+//   int index = 0;
 
-  printk(KERN_ALERT "mxc_print_readyBuffer:\n");
-  printk(KERN_ALERT "Self: %p Next: %p, Prev: %p\n", llist, llist->next, llist->prev);
+//   printk(KERN_ALERT "mxc_print_readyBuffer:\n");
+//   printk(KERN_ALERT "Self: %p Next: %p, Prev: %p\n", llist, llist->next, llist->prev);
 
-  list_for_each(node, llist) 
-  {
-    printk(KERN_ALERT "  Pos: %d\n", index);
-    printk(KERN_ALERT "  Node: %p, Next: %p, Prev: %p\n", node, node->next, node->prev);
+//   list_for_each(node, llist) 
+//   {
+//     printk(KERN_ALERT "  Pos: %d\n", index);
+//     printk(KERN_ALERT "  Node: %p, Next: %p, Prev: %p\n", node, node->next, node->prev);
 
-    frame = list_entry(node, struct mxc_v4l_frame, queue);
+//     frame = list_entry(node, struct mxc_v4l_frame, queue);
     
-    printk(KERN_ALERT "  Index: %d\n", frame->index);
-    printk(KERN_ALERT "  PAddress: %X\n", frame->paddress);
-    printk(KERN_ALERT "  vAddress: %p\n", frame->vaddress);
-    printk(KERN_ALERT "  Buffer Index: %d\n", frame->buffer.index);
-    printk(KERN_ALERT "  Buffer Flags: %X\n", frame->buffer.flags);
-    index++;
+//     printk(KERN_ALERT "  Index: %d\n", frame->index);
+//     printk(KERN_ALERT "  PAddress: %X\n", frame->paddress);
+//     printk(KERN_ALERT "  vAddress: %p\n", frame->vaddress);
+//     printk(KERN_ALERT "  Buffer Index: %d\n", frame->buffer.index);
+//     printk(KERN_ALERT "  Buffer Flags: %X\n", frame->buffer.flags);
+//     index++;
+//   }
+// }
+// #endif
+
+/*****************************************************************************/
+static void imx_v4l2_io3_toggle(cam_data *cam)
+{
+  if (cam->gpio_io3_state)
+  {
+		gpio_set_value(cam->gpio_io3, 0);
+    cam->gpio_io3_state = 0;
+  }
+	else
+  {
+		gpio_set_value(cam->gpio_io3, 1);
+    cam->gpio_io3_state = 1;
   }
 }
-#endif
+
+/*****************************************************************************/
+static void imx_v4l2_io4_toggle(cam_data *cam)
+{
+  if (cam->gpio_io4_state)
+  {
+		gpio_set_value(cam->gpio_io4, 0);
+    cam->gpio_io4_state = 0;
+  }
+	else
+  {
+		gpio_set_value(cam->gpio_io4, 1);
+    cam->gpio_io4_state = 1;
+  }
+}
 
 /***************************************************************************
  * Functions for handling Frame buffers.
@@ -334,6 +403,13 @@ static int mxc_allocate_frame_buf(cam_data *cam, int count)
 
   mxc_free_frames(cam); //Make sure the linked lists are reset.
 
+  //Change this over to use 
+  //struct dma_pool *	dma_pool_create(const char *name, struct device *dev, size_t size, size_t align, size_t alloc);
+  //void * dma_pool_alloc(struct dma_pool *pool, gfp_t gfp_flags, dma_addr_t *dma_handle);
+  //void dma_pool_free(struct dma_pool *pool, void *vaddr, dma_addr_t addr);
+  //void dma_pool_destroy(struct dma_pool *pool);
+  //No Need to use GFP_ATOMIC
+
 	for (i = 0; i < count; i++) 
   {
 		cam->frame[i].vaddress = dma_alloc_coherent(0, PAGE_ALIGN(map_sizeimage), &cam->frame[i].paddress, GFP_DMA | GFP_ATOMIC);
@@ -350,6 +426,10 @@ static int mxc_allocate_frame_buf(cam_data *cam, int count)
 		cam->frame[i].buffer.memory = V4L2_MEMORY_MMAP;
 		cam->frame[i].buffer.m.offset = cam->frame[i].paddress;
 		cam->frame[i].index = i;
+
+#ifdef ARANZ_DEBUG
+    printk(KERN_ALERT "mxc_allocate_frame_buf: Index: %d, Address: %p : %u\n", i, cam->frame[i].vaddress, cam->frame[i].paddress);
+#endif
 	}
 
 	if (cam->dummy_frame.vaddress == 0)
@@ -360,6 +440,10 @@ static int mxc_allocate_frame_buf(cam_data *cam, int count)
 #ifdef ARANZ_DEBUG
     printk(KERN_ALERT "mxc_allocate_frame_buf: Dummy frame allocated\n");
 #endif
+  }
+  else
+  {
+    printk(KERN_ALERT "mxc_allocate_frame_buf: Dummy frame allocation failed.\n");
   }
 
 	return 0;
@@ -582,6 +666,8 @@ static int mxc_streamon(cam_data *cam)
 
 	cam->capture_on = true;
 
+  imx_v4l2_io3_toggle(cam);
+
 	return err;
 }
 
@@ -625,9 +711,14 @@ static int mxc_streamoff(cam_data *cam)
 		}
 	}
 
+  stop_epit(cam);
+
 	mxc_free_frames(cam);
 	mxc_capture_inputs[cam->current_input].status |= V4L2_IN_ST_NO_POWER;
 	cam->capture_on = false;
+
+  imx_v4l2_io3_toggle(cam);
+
 	return err;
 }
 
@@ -1287,9 +1378,9 @@ static int mxc_v4l2_g_ctrl(cam_data *cam, struct v4l2_control *c)
 }
 
 /*********************************************************************************************************************/
-static int mxc_v4l2_send_command(cam_data *cam,
-		struct v4l2_send_command_control *c) {
-	int ret =0;
+static int mxc_v4l2_send_command(cam_data *cam, struct v4l2_send_command_control *c) 
+{
+	int ret = 0;
 
 	if (vidioc_int_send_command(cam->sensor, c)) {
 		ret = -EINVAL;
@@ -1998,6 +2089,20 @@ void power_off_camera(cam_data *cam)
 	schedule_delayed_work(&cam->power_down_work, (HZ * 2));
 }
 
+static void all_off(cam_data *cam)
+{
+  gpio_set_value(cam->gpio_FLEN, 0);
+  gpio_set_value(cam->gpio_CHARGE_EN, 0);
+  gpio_set_value(cam->gpio_LED_CUR1, 0);
+  gpio_set_value(cam->gpio_LED_CUR2, 0);
+  gpio_set_value(cam->gpio_LED1_EN, 0);
+  gpio_set_value(cam->gpio_LED2_EN, 0);
+  gpio_set_value(cam->gpio_LED_EN, 0);
+  gpio_set_value(cam->gpio_LASER1, 0);
+  gpio_set_value(cam->gpio_LASER2, 0);
+  gpio_set_value(cam->gpio_LASER3, 0);
+}
+
 unsigned long csi_in_use;
 
 /*********************************************************************************************************************/
@@ -2041,6 +2146,8 @@ static int mxc_v4l_open(struct file *file)
 	}
 	pr_debug("%s: %s ipu%d/csi%d\n", __func__, dev->name,
 		cam->ipu_id, cam->csi);
+
+  all_off(cam);
 
 	down(&cam->busy_lock);
 
@@ -2147,6 +2254,8 @@ static int mxc_v4l_close(struct file *file)
 		       __func__);
 		return -EBADF;
 	}
+
+  all_off(cam);
 
 	down(&cam->busy_lock);
 
@@ -2371,7 +2480,10 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 	case VIDIOC_REQBUFS: 
   {
 		struct v4l2_requestbuffers *req = arg;
-		pr_debug("   case VIDIOC_REQBUFS\n");
+
+#ifdef ARANZ_DEBUG
+    printk(KERN_ALERT "VIDIOC_REQBUFS: %d.\n", req->count);
+#endif
 
 		if (req->count > FRAME_NUM) 
     {
@@ -2398,10 +2510,14 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 	/*!
 	 * V4l2 VIDIOC_QUERYBUF ioctl
 	 */
-	case VIDIOC_QUERYBUF: {
+	case VIDIOC_QUERYBUF: 
+  {
 		struct v4l2_buffer *buf = arg;
 		int index = buf->index;
-		pr_debug("   case VIDIOC_QUERYBUF\n");
+
+#ifdef ARANZ_DEBUG
+    printk(KERN_ALERT "VIDIOC_QUERYBUF: %d.\n", index);
+#endif
 
 		if (buf->type != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
 			pr_err("ERROR: v4l2 capture: "
@@ -2436,7 +2552,6 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 		int index = buf->index;
 
 #ifdef ARANZ_DEBUG
-		//pr_debug("   case VIDIOC_QBUF\n");
     printk(KERN_ALERT "VIDIOC_QBUF: %d.\n", index);
 #endif
 
@@ -2849,20 +2964,166 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 		break;
   }
 
-  case VIDIOC_ARANZ_SEQ1:
+  case VIDIOC_LIGHTING_CTRL:
   {
+    __u32 *flags = arg;
+    bool torch = false;
+
 #ifdef ARANZ_DEBUG
-    printk(KERN_ALERT "VIDIOC_ARANZ_SEQ1\n");
+    printk(KERN_ALERT "mxc_v4l_do_ioctl: VIDIOC_LIGHTING_CTRL: %p, 0x%X\n", flags, *flags);
 #endif
+
+    if(*flags & 0x80)
+    {
+      gpio_set_value(cam->gpio_CHARGE_EN,1);
+      gpio_set_value(cam->gpio_LED1_EN, 1);
+      gpio_set_value(cam->gpio_LED2_EN, 1);
+      gpio_set_value(cam->gpio_LED_CUR1, 1);
+      gpio_set_value(cam->gpio_LED_CUR2, 1);
+      gpio_set_value(cam->gpio_LED_EN, 0);
+      gpio_set_value(cam->gpio_FLEN, 1);
+
+      cam->flashTest = true;
+      cam->flashTestCount = 0;
+      start_epit(cam);
+      retval = 0;
+      break;
+    }
+
+    if(*flags & 0x01)
+      gpio_set_value(cam->gpio_LASER1, 1);
+    else
+      gpio_set_value(cam->gpio_LASER1, 0);
+
+    if(*flags & 0x02)
+      gpio_set_value(cam->gpio_LASER2, 1);
+    else
+      gpio_set_value(cam->gpio_LASER2, 0);
+
+    if(*flags & 0x04)
+      gpio_set_value(cam->gpio_LASER3, 1);
+    else
+      gpio_set_value(cam->gpio_LASER3, 0);
+
+    if(*flags & 0x10)
+    {
+      gpio_set_value(cam->gpio_LED1_EN, 1);
+      torch = true;
+    }
+    else
+    {
+      gpio_set_value(cam->gpio_LED1_EN, 0);
+    }
+
+    if(*flags & 0x20)
+    {
+      gpio_set_value(cam->gpio_LED2_EN, 1);
+      torch = true;
+    }
+    else
+    {
+      gpio_set_value(cam->gpio_LED2_EN, 0);
+    }
+
+    if(torch)
+    {
+      gpio_set_value(cam->gpio_FLEN, 0);
+      gpio_set_value(cam->gpio_LED_CUR1, 1);
+      gpio_set_value(cam->gpio_LED_CUR2, 1);
+      gpio_set_value(cam->gpio_CHARGE_EN,1);
+      gpio_set_value(cam->gpio_LED_EN, 1);
+    }
+    else
+    {
+      gpio_set_value(cam->gpio_FLEN, 0);
+      gpio_set_value(cam->gpio_LED_CUR1, 0);
+      gpio_set_value(cam->gpio_LED_CUR2, 0);
+      gpio_set_value(cam->gpio_CHARGE_EN,0);
+      gpio_set_value(cam->gpio_LED_EN, 0);
+    }
+
     retval = 0;
     break;
   }
 
-  case VIDIOC_ARANZ_SEQ2:
+  case VIDIOC_IMAGE_SEQ1:
   {
+    struct v4l2_control c;
+    struct v4l2_seq_settings* pSeqSettings = arg;
+    
+#ifdef ARANZ_DEBUG
+    printk(KERN_ALERT "VIDIOC_ARANZ_SEQ1\n");
+#endif
+
+    cam->mode = V4L2_MODE_SEQ1;
+    cam->stateMachineIndex = 0;
+    memcpy(&cam->seq_settings, pSeqSettings, sizeof(struct v4l2_seq_settings));
+
+    //Set the Texture Frame Settings.
+    //Set Frame 1 EXPOSURE
+    c.id = V4L2_CID_EXPOSURE;
+    c.value = cam->seq_settings.textureExposure;
+    vidioc_int_s_ctrl(cam->sensor, &c);
+
+    //Set Frame 1 Gain.
+    c.id = V4L2_CID_GAIN;
+    c.value = cam->seq_settings.textureGain;
+    vidioc_int_s_ctrl(cam->sensor, &c);
+
+    gpio_set_value(cam->gpio_FLEN, 0);
+    gpio_set_value(cam->gpio_LED_EN, 0);
+    gpio_set_value(cam->gpio_CHARGE_EN,0);
+    gpio_set_value(cam->gpio_LED1_EN, 1);
+    gpio_set_value(cam->gpio_LED2_EN, 1);
+    gpio_set_value(cam->gpio_LED_CUR1, 1);
+    gpio_set_value(cam->gpio_LED_CUR2, 1);
+    gpio_set_value(cam->gpio_LASER1, 0);
+    gpio_set_value(cam->gpio_LASER2, 0);
+    gpio_set_value(cam->gpio_LASER3, 0);
+
+    //mxc_streamon(cam);
+
+    retval = 0;
+    break;
+  }
+
+  case VIDIOC_IMAGE_SEQ2:
+  {
+    struct v4l2_control c;
+    struct v4l2_seq_settings* pSeqSettings = arg;
+
 #ifdef ARANZ_DEBUG
     printk(KERN_ALERT "VIDIOC_ARANZ_SEQ2\n");
 #endif
+
+    cam->mode = V4L2_MODE_SEQ2;
+    cam->stateMachineIndex = 0;
+    memcpy(&cam->seq_settings, pSeqSettings, sizeof(struct v4l2_seq_settings));
+
+    //Set the Texture Frame Settings.
+    //Set Frame 1 EXPOSURE
+    c.id = V4L2_CID_EXPOSURE;
+    c.value = cam->seq_settings.textureExposure;
+    vidioc_int_s_ctrl(cam->sensor, &c);
+
+    //Set Frame 1 Gain.
+    c.id = V4L2_CID_GAIN;
+    c.value = cam->seq_settings.textureGain;
+    vidioc_int_s_ctrl(cam->sensor, &c);
+
+    gpio_set_value(cam->gpio_FLEN, 0);
+    gpio_set_value(cam->gpio_LED_EN, 0);
+    gpio_set_value(cam->gpio_CHARGE_EN,0);
+    gpio_set_value(cam->gpio_LED1_EN, 1);
+    gpio_set_value(cam->gpio_LED2_EN, 1);
+    gpio_set_value(cam->gpio_LED_CUR1, 1);
+    gpio_set_value(cam->gpio_LED_CUR2, 1);
+    gpio_set_value(cam->gpio_LASER1, 0);
+    gpio_set_value(cam->gpio_LASER2, 0);
+    gpio_set_value(cam->gpio_LASER3, 0);
+
+    //mxc_streamon(cam);
+
     retval = 0;
     break;
   }
@@ -2998,6 +3259,180 @@ static void camera_platform_release(struct device *device)
 }
 
 /*********************************************************************************************************************/
+static void SEQ1_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
+{
+  switch(cam->stateMachineIndex)
+  {
+    case 0:
+      cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
+      list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
+      start_epit(cam);
+      break;
+
+    case 5:
+      cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
+      list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
+      break;
+
+    case 6:
+      cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
+      list_add_tail(&done_frame->queue, &cam->done_q);
+
+      gpio_set_value(cam->gpio_FLEN, 0);
+      gpio_set_value(cam->gpio_LASER3, 1);
+
+      /* Wake up the queue */
+      cam->enc_counter++;
+      wake_up_interruptible(&cam->enc_queue);
+      break;
+      
+    case 7:
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
+      list_add_tail(&done_frame->queue, &cam->done_q);
+
+      //End of Sequence.
+      cam->mode = V4L2_MODE_NORMAL;
+      cam->stateMachineIndex = 0;
+
+      gpio_set_value(cam->gpio_FLEN, 0);
+      gpio_set_value(cam->gpio_LED_EN, 0);
+      gpio_set_value(cam->gpio_CHARGE_EN,0);
+      gpio_set_value(cam->gpio_LED1_EN, 0);
+      gpio_set_value(cam->gpio_LED2_EN, 0);
+      gpio_set_value(cam->gpio_LED_CUR1, 0);
+      gpio_set_value(cam->gpio_LED_CUR2, 0);
+      gpio_set_value(cam->gpio_LASER1, 0);
+      gpio_set_value(cam->gpio_LASER2, 0);
+      gpio_set_value(cam->gpio_LASER3, 0);
+
+      /* Wake up the queue */
+      cam->enc_counter++;
+      wake_up_interruptible(&cam->enc_queue);
+      break;
+
+    default:
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
+      list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
+      pr_err("ERROR: v4l2 capture: camera_callback: State machine timming error.\n");
+      break;
+  }
+}
+
+/*********************************************************************************************************************/
+static void SEQ2_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
+{
+  switch(cam->stateMachineIndex)
+  {
+    case 0:
+      stop_epit(cam);
+      cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
+      list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
+      start_epit(cam);
+      break;
+
+    case 5:
+      stop_epit(cam);
+      cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
+      list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
+      start_epit(cam);
+      break;
+
+    case 10:
+      stop_epit(cam);
+      cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.  This is the completion of the Texture Frame.
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
+      list_add_tail(&done_frame->queue, &cam->done_q);
+
+      gpio_set_value(cam->gpio_FLEN, 0);
+      start_epit(cam);
+
+      /* Wake up the queue */
+      cam->enc_counter++;
+      wake_up_interruptible(&cam->enc_queue);
+      break;
+
+    case 15:
+      stop_epit(cam);
+      cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.  This is the completion of the Laser 3 Frame.
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
+      list_add_tail(&done_frame->queue, &cam->done_q);
+
+      gpio_set_value(cam->gpio_FLEN, 0);
+      start_epit(cam);
+
+      /* Wake up the queue */
+      cam->enc_counter++;
+      wake_up_interruptible(&cam->enc_queue);
+      break;
+
+    case 20:
+      stop_epit(cam);
+      cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.  This is the completion of the All Laser Frame.
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
+      list_add_tail(&done_frame->queue, &cam->done_q);
+
+      gpio_set_value(cam->gpio_LASER2, 0);
+      gpio_set_value(cam->gpio_LASER3, 0);
+      start_epit(cam);
+
+      /* Wake up the queue */
+      cam->enc_counter++;
+      wake_up_interruptible(&cam->enc_queue);
+      break;
+
+    case 25:
+      stop_epit(cam);
+      cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.  This is the completion of the All Laser Frame.
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
+      list_add_tail(&done_frame->queue, &cam->done_q);
+
+      gpio_set_value(cam->gpio_LASER1, 0);
+      start_epit(cam);
+
+      /* Wake up the queue */
+      cam->enc_counter++;
+      wake_up_interruptible(&cam->enc_queue);
+      break;
+      
+    case 30:
+      stop_epit(cam);
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
+      list_add_tail(&done_frame->queue, &cam->done_q);
+
+      //End of Sequence.
+      cam->mode = V4L2_MODE_NORMAL;
+      cam->stateMachineIndex = 0;
+
+      gpio_set_value(cam->gpio_FLEN, 0);
+      gpio_set_value(cam->gpio_LED_EN, 0);
+      gpio_set_value(cam->gpio_CHARGE_EN,0);
+      gpio_set_value(cam->gpio_LED1_EN, 0);
+      gpio_set_value(cam->gpio_LED2_EN, 0);
+      gpio_set_value(cam->gpio_LED_CUR1, 0);
+      gpio_set_value(cam->gpio_LED_CUR2, 0);
+      gpio_set_value(cam->gpio_LASER1, 0);
+      gpio_set_value(cam->gpio_LASER2, 0);
+      gpio_set_value(cam->gpio_LASER3, 0);
+
+      /* Wake up the queue */
+      cam->enc_counter++;
+      wake_up_interruptible(&cam->enc_queue);
+      break;
+
+    default:
+      done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
+      list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
+      pr_err("ERROR: v4l2 capture: camera_callback: State machine timming error.\n");
+      break;
+  }
+}
+
+/*********************************************************************************************************************/
 /*!
  * Camera V4l2 callback function.
  *
@@ -3018,6 +3453,8 @@ static void camera_callback(u32 mask, void *dev)
   {
 		return;
   }
+
+  imx_v4l2_io3_toggle(cam);
 
 	//pr_debug("%s\n", __func__);
 
@@ -3050,17 +3487,29 @@ static void camera_callback(u32 mask, void *dev)
 
 		if (done_frame->buffer.flags & V4L2_BUF_FLAG_QUEUED) 
     {
-			done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
 			done_frame->buffer.flags &= ~V4L2_BUF_FLAG_QUEUED;
 
 			/* Added to the done queue */
 			list_del(cam->working_q.next);
-			list_add_tail(&done_frame->queue, &cam->done_q);
 
-			/* Wake up the queue */
-			cam->enc_counter++;
-			wake_up_interruptible(&cam->enc_queue);
-      pr_err("v4l2 capture: camera_callback: Frame Done: %d, PingPong: %d\n", done_frame->index, done_frame->ipu_buf_num);
+      if(cam->mode == V4L2_MODE_SEQ1)
+      {
+        SEQ1_StateMachine(cam, done_frame);
+      }
+      else if(cam->mode == V4L2_MODE_SEQ2)
+      {
+        SEQ2_StateMachine(cam, done_frame);
+      }
+      else
+      {
+        done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
+        list_add_tail(&done_frame->queue, &cam->done_q);
+
+        /* Wake up the queue */
+        cam->enc_counter++;
+        wake_up_interruptible(&cam->enc_queue);
+        //pr_err("v4l2 capture: camera_callback: Frame Done: %d, PingPong: %d\n", done_frame->index, done_frame->ipu_buf_num);
+      }
 		} 
     else
     {
@@ -3084,7 +3533,7 @@ next:
 				list_del(cam->ready_q.next);
 				list_add_tail(&ready_frame->queue, &cam->working_q);
 
-        pr_err("v4l2 capture: camera_callback: ENC Frame Queued: %d, PingPong: %d\n", ready_frame->index, ready_frame->ipu_buf_num);
+        //pr_err("v4l2 capture: camera_callback: ENC Frame Queued: %d, PingPong: %d\n", ready_frame->index, ready_frame->ipu_buf_num);
 			}
       else
       {
@@ -3270,22 +3719,25 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	spin_lock_init(&cam->queue_int_lock);
 	spin_lock_init(&cam->dqueue_int_lock);
 
-	cam->dummy_frame.vaddress = dma_alloc_coherent(0, SZ_8M, &cam->dummy_frame.paddress, GFP_DMA | GFP_ATOMIC);
-	if (cam->dummy_frame.vaddress == 0)
-  {
-		pr_err("ERROR: v4l2 capture: Allocate dummy frame failed.\n");
-    cam->dummy_frame.buffer.length = 0;
-  }
-  else
-  {
-	  cam->dummy_frame.buffer.length = SZ_8M;
-  }
+	// cam->dummy_frame.vaddress = dma_alloc_coherent(0, SZ_8M, &cam->dummy_frame.paddress, GFP_DMA | GFP_ATOMIC);
+	// if (cam->dummy_frame.vaddress == 0)
+  // {
+	// 	pr_err("ERROR: v4l2 capture: Allocate dummy frame failed.\n");
+  //   cam->dummy_frame.buffer.length = 0;
+  // }
+  // else
+  // {
+	//   cam->dummy_frame.buffer.length = SZ_8M;
+  // }
 
 	cam->self = kmalloc(sizeof(struct v4l2_int_device), GFP_KERNEL);
 	cam->self->module = THIS_MODULE;
 	sprintf(cam->self->name, "mxc_v4l2_cap%d", camera_id++);
 	cam->self->type = v4l2_int_type_master;
 	cam->self->u.master = &mxc_v4l2_master;
+
+  cam->mode = V4L2_MODE_NORMAL;
+  cam->stateMachineIndex = 0;
 
 	return 0;
 }
@@ -3329,6 +3781,506 @@ static ssize_t show_csi(struct device *dev,
 	return sprintf(buf, "ipu%d_csi%d\n", cam->ipu_id, cam->csi);
 }
 static DEVICE_ATTR(fsl_csi_property, S_IRUGO, show_csi, NULL);
+
+/*****************************************************************************/
+static inline void imx_v4l2_epit_irq_disable(cam_data *cam)
+{
+	u32 val;
+
+	val = readl(cam->epit_base + EPITCR);
+	val &= ~EPITCR_OCIEN;
+	writel(val, cam->epit_base + EPITCR);
+}
+
+/*****************************************************************************/
+static inline void imx_v4l2_epit_irq_enable(cam_data *cam)
+{
+	u32 val;
+
+	val = readl(cam->epit_base + EPITCR);
+	val |= EPITCR_OCIEN;
+	writel(val, cam->epit_base + EPITCR);
+}
+
+/*****************************************************************************/
+static inline void imx_v4l2_epit_enable(cam_data *cam)
+{
+	u32 val;
+
+	val = readl(cam->epit_base + EPITCR);
+	val |= EPITCR_EN;
+	writel(val, cam->epit_base + EPITCR);
+}
+
+/*****************************************************************************/
+static inline void imx_v4l2_epit_disable(cam_data *cam)
+{
+	u32 val;
+
+	val = readl(cam->epit_base + EPITCR);
+	val &= ~EPITCR_EN;
+	writel(val, cam->epit_base + EPITCR);
+}
+
+/*****************************************************************************/
+static void imx_v4l2_epit_irq_acknowledge(cam_data *cam)
+{
+	writel(EPITSR_OCIF, cam->epit_base + EPITSR);
+}
+
+/*****************************************************************************/
+static irqreturn_t imx_v4l2_epit_timer_interrupt(int irq, void *dev_id)
+{
+  cam_data* cam = NULL;
+  struct device*	pdev = (struct device*)dev_id;
+
+  cam = dev_get_drvdata(pdev);
+
+	imx_v4l2_epit_irq_acknowledge(cam);
+
+  imx_v4l2_io4_toggle(cam);
+
+  if(cam->flashTest)
+  {
+    cam->flashTestCount++;
+
+    if(cam->flashTestCount > 3)
+    {
+      stop_epit(cam);
+      cam->flashTest = false;
+      gpio_set_value(cam->gpio_FLEN, 0);
+      gpio_set_value(cam->gpio_LED_EN, 0);
+      gpio_set_value(cam->gpio_CHARGE_EN,0);
+      gpio_set_value(cam->gpio_LED1_EN, 0);
+      gpio_set_value(cam->gpio_LED2_EN, 0);
+      gpio_set_value(cam->gpio_LED_CUR1, 0);
+      gpio_set_value(cam->gpio_LED_CUR2, 0);
+    }
+  }
+
+  if(cam->mode == V4L2_MODE_SEQ1)
+  {
+    switch(cam->stateMachineIndex)
+    {
+      case 1:
+      case 2:
+      case 3:
+        cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+        break;
+
+      case 4:
+        cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+        gpio_set_value(cam->gpio_FLEN, 1);
+        stop_epit(cam);
+        break;
+
+      default:
+        break;
+    }
+  }
+  else if(cam->mode == V4L2_MODE_SEQ2)
+  {
+    switch(cam->stateMachineIndex)
+    {
+      case 1:
+      case 2:
+      case 3:
+      case 6:
+      case 7:
+      case 8:
+      case 11:
+      case 12:
+      case 13:
+      case 16:
+      case 17:
+      case 18:
+      case 21:
+      case 22:
+      case 23:
+      case 26:
+      case 27:
+      case 28:
+        cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+        break;
+
+      case 4:
+        cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+        gpio_set_value(cam->gpio_FLEN, 1);
+        gpio_set_value(cam->gpio_LASER1, 0);
+        gpio_set_value(cam->gpio_LASER2, 0);
+        gpio_set_value(cam->gpio_LASER3, 0);
+        stop_epit(cam);
+        break;
+
+      case 9:
+        cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+        gpio_set_value(cam->gpio_LASER3, 1);
+        stop_epit(cam);
+        break;
+
+      case 14:
+        cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+        gpio_set_value(cam->gpio_LASER1, 1);
+        gpio_set_value(cam->gpio_LASER2, 1);
+        stop_epit(cam);
+        break;
+
+      case 19:
+        cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+        stop_epit(cam);
+        break;
+
+      case 24:
+        cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+        gpio_set_value(cam->gpio_LASER2, 1);
+        stop_epit(cam);
+        break;
+
+      case 29:
+        cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
+        stop_epit(cam);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+	return IRQ_HANDLED;
+}
+
+/*****************************************************************************/
+static irqreturn_t imx_v4l2_href_interrupt(int irq, void *dev_id)
+{
+  cam_data* cam = NULL;
+  struct device*	pdev = (struct device*)dev_id;
+
+  cam = dev_get_drvdata(pdev);
+
+  //imx_v4l2_href_toggle(cam);
+
+  return IRQ_HANDLED;
+}
+
+/*****************************************************************************/
+static void start_epit(cam_data *cam)
+{
+  __raw_writel(0x0, cam->epit_base + EPITCR);
+  imx_v4l2_epit_irq_acknowledge(cam);
+
+  writel(0x000B3095, cam->epit_base + EPITLR); //This gives a count of 0.011111106061 Seconds
+  writel(0x00000000, cam->epit_base + EPITCMPR); //Signal Interupt when counter __raw_writel(0x0, base + EPITCR);Reaches zero
+	writel(EPITCR_CLKSRC_REF_HIGH | EPITCR_RLD | EPITCR_ENMOD | EPITCR_DBGEN | EPITCR_WAITEN | EPITCR_STOPEN, cam->epit_base + EPITCR);
+  writel(0x000B3095, cam->epit_base + EPITLR); //This gives a count of 0.011111106061 Seconds
+  imx_v4l2_epit_irq_acknowledge(cam);
+  imx_v4l2_epit_enable(cam);
+  imx_v4l2_epit_irq_enable(cam);
+
+  imx_v4l2_io4_toggle(cam);
+}
+
+/*****************************************************************************/
+static void stop_epit(cam_data *cam)
+{
+  imx_v4l2_epit_irq_disable(cam);
+  imx_v4l2_epit_disable(cam);
+  imx_v4l2_epit_irq_acknowledge(cam);
+
+  imx_v4l2_io4_toggle(cam);
+}
+
+/*****************************************************************************/
+static int imx_v4l2_epit_probe(struct platform_device *pdev, cam_data *cam)
+{
+  int err = -ENODEV;
+
+  printk(KERN_ALERT "imx_v4l2_epit_probe.\n");
+
+  cam->epit_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+  cam->epit_base = devm_ioremap_resource(&pdev->dev, cam->epit_res);
+  if (IS_ERR(cam->epit_base))
+  {
+    dev_err(&pdev->dev, "unable to get mem ressource\n");
+    return PTR_ERR(cam->epit_base);
+  }
+
+  printk(KERN_ALERT "imx_v4l2_epit_probe:base:  %p\n", cam->epit_base);
+
+  cam->epit_irq = platform_get_irq(pdev, 0);
+  if (cam->epit_irq < 0)
+  {
+    dev_err(&pdev->dev, "no interrupt defined: %d\n", cam->epit_irq);
+    err = -ENOENT;
+    return err;
+  }
+  err = request_irq(cam->epit_irq, imx_v4l2_epit_timer_interrupt, IRQF_TIMER | IRQF_IRQPOLL, "epit2", &pdev->dev);
+  if (err)
+  {
+    dev_err(&pdev->dev, "can't reserve irq = %d\n", cam->epit_irq);
+    return err;
+  }
+
+  printk(KERN_ALERT "imx_v4l2_epit_probe:EPIT irq: %d\n", cam->epit_irq);
+
+  cam->epit_clk_per = devm_clk_get(&pdev->dev, "per");
+  if (IS_ERR(cam->epit_clk_per))
+  {
+    dev_err(&pdev->dev, "getting per clock failed with %ld\n", PTR_ERR(cam->epit_clk_per));
+    return PTR_ERR(cam->epit_clk_per);
+  }
+
+  cam->epit_clk_ipg = devm_clk_get(&pdev->dev, "ipg");
+  if (IS_ERR(cam->epit_clk_ipg))
+  {
+    dev_err(&pdev->dev, "getting ipg clock failed with %ld\n", PTR_ERR(cam->epit_clk_ipg));
+    return PTR_ERR(cam->epit_clk_ipg);
+  }
+
+	/*
+	 * Initialise to a known state (all timers off, and timing reset)
+	 */
+
+  err = clk_prepare_enable(cam->epit_clk_per);
+  if (err)
+  {
+    return err;
+  }
+
+  printk(KERN_ALERT "imx_v4l2_epit_probe:Per Clock Rate:  %lu\n", clk_get_rate(cam->epit_clk_per));
+
+	__raw_writel(0x0, cam->epit_base + EPITCR);
+  imx_v4l2_epit_irq_acknowledge(cam);
+
+  writel(0x000B3095, cam->epit_base + EPITLR); //This gives a count of 0.011111106061 Seconds
+  writel(0x00000000, cam->epit_base + EPITCMPR); //Signal Interupt when counter __raw_writel(0x0, base + EPITCR);Reaches zero
+	writel(EPITCR_CLKSRC_REF_HIGH | EPITCR_RLD | EPITCR_ENMOD | EPITCR_DBGEN | EPITCR_WAITEN | EPITCR_STOPEN, cam->epit_base + EPITCR);
+  writel(0x000B3095, cam->epit_base + EPITLR); //This gives a count of 0.011111106061 Seconds
+  imx_v4l2_epit_irq_acknowledge(cam);
+
+  return 0;
+}
+
+/*****************************************************************************/
+static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
+{
+  int err = -ENODEV;
+
+  cam->gpio_io3 = of_get_named_gpio(pdev->dev.of_node, "gpio_io3", 0);
+  if (!gpio_is_valid(cam->gpio_io3)) 
+  {
+		dev_warn(&pdev->dev, "no io3 pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_io3, GPIOF_OUT_INIT_LOW, "gpio_io3");
+	if (err < 0) 
+  {
+		dev_warn(&pdev->dev, "request of io3 pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found io3 GPIO\n");
+
+  cam->gpio_io4 = of_get_named_gpio(pdev->dev.of_node, "gpio_io4", 0);
+  if (!gpio_is_valid(cam->gpio_io4)) 
+  {
+		dev_warn(&pdev->dev, "no io4 pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_io4, GPIOF_OUT_INIT_LOW, "gpio_io4");
+	if (err < 0) 
+  {
+		dev_warn(&pdev->dev, "request of io4 pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found io4 GPIO\n");
+
+  cam->gpio_LED_EN = of_get_named_gpio(pdev->dev.of_node, "gpio_LED_EN", 0);
+  if (!gpio_is_valid(cam->gpio_LED_EN)) 
+  {
+		dev_warn(&pdev->dev, "no LED_EN pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_LED_EN, GPIOF_OUT_INIT_LOW, "gpio_LED_EN");
+	if (err < 0) 
+  {
+		dev_warn(&pdev->dev, "request of LED_EN pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED_EN GPIO\n");
+
+  cam->gpio_LASER1 = of_get_named_gpio(pdev->dev.of_node, "gpio_LASER1", 0);
+  if (!gpio_is_valid(cam->gpio_LASER1)) 
+  {
+		dev_warn(&pdev->dev, "no Laser1 pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_LASER1, GPIOF_OUT_INIT_LOW, "gpio_LASER1");
+	if (err < 0) 
+  {
+		dev_warn(&pdev->dev, "request of Laser1 pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LASER1 GPIO\n");
+
+  cam->gpio_LASER2 = of_get_named_gpio(pdev->dev.of_node, "gpio_LASER2", 0);
+  if (!gpio_is_valid(cam->gpio_LASER2)) 
+  {
+		dev_warn(&pdev->dev, "no Laser2 pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_LASER2, GPIOF_OUT_INIT_LOW, "gpio_LASER2");
+	if (err < 0) 
+  {
+		dev_warn(&pdev->dev, "request of Laser2 pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LASER 2 GPIO\n");
+
+  cam->gpio_LASER3 = of_get_named_gpio(pdev->dev.of_node, "gpio_LASER3", 0);
+  if (!gpio_is_valid(cam->gpio_LASER3)) 
+  {
+		dev_warn(&pdev->dev, "no Laser3 pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_LASER3, GPIOF_OUT_INIT_LOW, "gpio_LASER3");
+	if (err < 0) 
+  {
+		dev_warn(&pdev->dev, "request of Laser3 pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LASER 3 GPIO\n");
+
+  cam->gpio_LED1_EN = of_get_named_gpio(pdev->dev.of_node, "gpio_LED1_EN", 0);
+  if (!gpio_is_valid(cam->gpio_LED1_EN)) 
+  {
+		dev_warn(&pdev->dev, "no LED1_EN pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_LED1_EN, GPIOF_OUT_INIT_LOW, "gpio_LED1_EN");
+	if (err < 0)
+  {
+		dev_warn(&pdev->dev, "request of LED1_EN pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED1_EN GPIO\n");
+
+  cam->gpio_LED2_EN = of_get_named_gpio(pdev->dev.of_node, "gpio_LED2_EN", 0);
+  if (!gpio_is_valid(cam->gpio_LED2_EN)) 
+  {
+		dev_warn(&pdev->dev, "no LED2_EN pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_LED2_EN, GPIOF_OUT_INIT_LOW, "gpio_LED2_EN");
+	if (err < 0)
+  {
+		dev_warn(&pdev->dev, "request of LED2_EN pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED2_EN GPIO\n");
+
+  cam->gpio_LED_CUR1 = of_get_named_gpio(pdev->dev.of_node, "gpio_LED_CUR1", 0);
+  if (!gpio_is_valid(cam->gpio_LED_CUR1)) 
+  {
+		dev_warn(&pdev->dev, "no LED_CUR1 pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_LED_CUR1, GPIOF_OUT_INIT_LOW, "gpio_LED_CUR1");
+	if (err < 0)
+  {
+		dev_warn(&pdev->dev, "request of LED_CUR1 pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED_CUR1 GPIO\n");
+
+  cam->gpio_LED_CUR2 = of_get_named_gpio(pdev->dev.of_node, "gpio_LED_CUR2", 0);
+  if (!gpio_is_valid(cam->gpio_LED_CUR2)) 
+  {
+		dev_warn(&pdev->dev, "no LED_CUR2 pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_LED_CUR2, GPIOF_OUT_INIT_LOW, "gpio_LED_CUR2");
+	if (err < 0)
+  {
+		dev_warn(&pdev->dev, "request of LED_CUR2 pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED_CUR2 GPIO\n");
+
+  cam->gpio_FLEN = of_get_named_gpio(pdev->dev.of_node, "gpio_FLEN", 0);
+  if (!gpio_is_valid(cam->gpio_FLEN)) 
+  {
+		dev_warn(&pdev->dev, "no FLEN pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_FLEN, GPIOF_OUT_INIT_LOW, "gpio_FLEN");
+	if (err < 0)
+  {
+		dev_warn(&pdev->dev, "request of FLEN pin failed");
+		return err;
+	}
+
+  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found FLEN GPIO\n");
+
+  cam->gpio_CHARGE_EN = of_get_named_gpio(pdev->dev.of_node, "gpio_CHARGE_EN", 0);
+  if (!gpio_is_valid(cam->gpio_CHARGE_EN)) 
+  {
+		dev_warn(&pdev->dev, "no CHARGE_EN pin available");
+		return -EINVAL;
+	}
+	err = devm_gpio_request_one(&pdev->dev, cam->gpio_CHARGE_EN, GPIOF_OUT_INIT_LOW, "gpio_CHARGE_EN");
+	if (err < 0)
+  {
+		dev_warn(&pdev->dev, "request of CHARGE_EN pin failed");
+		return err;
+	}
+
+  // printk(KERN_ALERT "imx_v4l2_gpio_probe:Found CHARGE_EN GPIO\n");
+
+  // cam->gpio_HREF = of_get_named_gpio(pdev->dev.of_node, "gpio_HREF", 0);
+  // if (!gpio_is_valid(cam->gpio_HREF)) 
+  // {
+	// 	dev_warn(&pdev->dev, "no HREF pin available");
+	// 	return -EINVAL;
+	// }
+	// err = devm_gpio_request_one(&pdev->dev, cam->gpio_HREF, GPIOF_IN, "gpio_HREF");
+	// if (err < 0) 
+  // {
+	// 	dev_warn(&pdev->dev, "request of HREF pin failed");
+	// 	return err;
+	// }
+
+  // gpio_set_debounce(cam->gpio_HREF, 1);               // Set a 1ms debounce
+
+  // printk(KERN_ALERT "imx_v4l2_gpio_probe:Found HREF GPIO\n");
+
+  // cam->href_irq = gpio_to_irq(cam->gpio_HREF);        // map GPIO to an IRQ
+  // if (cam->href_irq < 0)
+  // {
+  //   dev_err(&pdev->dev, "interrupt could not be assigned to gpio: %d\n", cam->href_irq);
+  //   err = -ENOENT;
+  //   return err;
+  // }
+
+  // err = request_irq(cam->href_irq, imx_v4l2_href_interrupt, IRQF_TRIGGER_FALLING, "href", &pdev->dev);
+  // if (err)
+  // {
+  //   dev_err(&pdev->dev, "can't reserve irq = %d, Error: %d\n", cam->href_irq, err);
+  //   return err;
+  // }
+
+  // printk(KERN_ALERT "imx_v4l2_gpio_probe:HREF irq: %d\n", cam->href_irq);
+
+  return 0;
+}
 
 /*********************************************************************************************************************/
 /*!
@@ -3397,6 +4349,10 @@ static int mxc_v4l2_probe(struct platform_device *pdev)
   {
 		dev_err(&pdev->dev, "Error on creating sysfs file for csi number\n");
   }
+
+  imx_v4l2_epit_probe(pdev, cam);
+
+  imx_v4l2_gpio_probe(pdev, cam);
 
 	return 0;
 }
