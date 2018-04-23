@@ -332,6 +332,32 @@ static void imx_v4l2_io4_toggle(cam_data *cam)
   }
 }
 
+static int setLaserFrameSettings(void *dev)
+{
+	struct v4l2_control c;
+	cam_data *cam = (cam_data *) dev;
+	if (cam == NULL)
+  {
+		return 1;
+  }
+
+	if(wait_event_interruptible(cam->seq_queue, cam->seq_counter != 0) == 0)
+	{
+		c.id = V4L2_CID_EXPOSURE;
+		c.value = cam->seq_settings.laserExposure;
+		vidioc_int_s_ctrl(cam->sensor, &c);
+
+		//Set Frame 1 Gain.
+		c.id = V4L2_CID_GAIN;
+		c.value = cam->seq_settings.laserGain;
+		vidioc_int_s_ctrl(cam->sensor, &c);
+
+		printk(KERN_ALERT "***!@#!@#!@#*** SetLaserFrameSettings Thread Ran....\n");
+	}
+
+	return 0;
+}
+
 /***************************************************************************
  * Functions for handling Frame buffers.
  **************************************************************************/
@@ -3048,6 +3074,7 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 
   case VIDIOC_IMAGE_SEQ1:
   {
+		const char thread_name[32]="v4l2_SEQ1_SetLaserFrameSettings";
     struct v4l2_control c;
     struct v4l2_seq_settings* pSeqSettings = arg;
     
@@ -3081,7 +3108,12 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
     gpio_set_value(cam->gpio_LASER2, 0);
     gpio_set_value(cam->gpio_LASER3, 0);
 
-    //mxc_streamon(cam);
+		cam->seq_counter = 0;
+    cam->frame_settings_thread = kthread_create(setLaserFrameSettings, cam, thread_name);
+  	if((cam->frame_settings_thread))
+    {
+      wake_up_process(cam->frame_settings_thread);
+    }
 
     retval = 0;
     break;
@@ -3089,6 +3121,7 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
 
   case VIDIOC_IMAGE_SEQ2:
   {
+		const char thread_name[32]="v4l2_SEQ2_SetLaserFrameSettings";
     struct v4l2_control c;
     struct v4l2_seq_settings* pSeqSettings = arg;
 
@@ -3122,7 +3155,12 @@ static long mxc_v4l_do_ioctl(struct file *file, unsigned int ioctlnr, void *arg)
     gpio_set_value(cam->gpio_LASER2, 0);
     gpio_set_value(cam->gpio_LASER3, 0);
 
-    //mxc_streamon(cam);
+		cam->seq_counter = 0;
+		cam->frame_settings_thread = kthread_create(setLaserFrameSettings, cam, thread_name);
+  	if((cam->frame_settings_thread))
+    {
+      wake_up_process(cam->frame_settings_thread);
+    }
 
     retval = 0;
     break;
@@ -3268,15 +3306,17 @@ static void SEQ1_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
       done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
       list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
       start_epit(cam);
+			cam->seq_counter++;
+      wake_up_interruptible(&cam->seq_queue);
       break;
 
-    case 5:
+    case 6:
       cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
       done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
       list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
       break;
 
-    case 6:
+    case 7:
       cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
       done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
       list_add_tail(&done_frame->queue, &cam->done_q);
@@ -3289,7 +3329,7 @@ static void SEQ1_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
       wake_up_interruptible(&cam->enc_queue);
       break;
       
-    case 7:
+    case 8:
       done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
       list_add_tail(&done_frame->queue, &cam->done_q);
 
@@ -3311,6 +3351,7 @@ static void SEQ1_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
       /* Wake up the queue */
       cam->enc_counter++;
       wake_up_interruptible(&cam->enc_queue);
+
       break;
 
     default:
@@ -3332,23 +3373,27 @@ static void SEQ2_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
       done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
       list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
       start_epit(cam);
+			cam->seq_counter++;
+      wake_up_interruptible(&cam->seq_queue);
       break;
 
-    case 5:
+    case 6:
       stop_epit(cam);
       cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
       done_frame->buffer.flags |= V4L2_BUF_FLAG_QUEUED;
       list_add_tail(&done_frame->queue, &cam->ready_q); //Skip these Frames and place the buffer back on the ready Queue.
+			//gpio_set_value(cam->gpio_FLEN, 1); //Temparary
       start_epit(cam);
       break;
 
-    case 10:
+    case 12:
       stop_epit(cam);
       cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.  This is the completion of the Texture Frame.
       done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
       list_add_tail(&done_frame->queue, &cam->done_q);
 
       gpio_set_value(cam->gpio_FLEN, 0);
+			//gpio_set_value(cam->gpio_LASER3, 1); //Temparary
       start_epit(cam);
 
       /* Wake up the queue */
@@ -3356,13 +3401,16 @@ static void SEQ2_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
       wake_up_interruptible(&cam->enc_queue);
       break;
 
-    case 15:
+    case 18:
       stop_epit(cam);
       cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.  This is the completion of the Laser 3 Frame.
       done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
       list_add_tail(&done_frame->queue, &cam->done_q);
 
-      gpio_set_value(cam->gpio_FLEN, 0);
+			//gpio_set_value(cam->gpio_LASER1, 1); //Temparary
+      //gpio_set_value(cam->gpio_LASER2, 1); //Temparary
+      //gpio_set_value(cam->gpio_LASER3, 1); //Temparary
+
       start_epit(cam);
 
       /* Wake up the queue */
@@ -3370,7 +3418,7 @@ static void SEQ2_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
       wake_up_interruptible(&cam->enc_queue);
       break;
 
-    case 20:
+    case 24:
       stop_epit(cam);
       cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.  This is the completion of the All Laser Frame.
       done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
@@ -3385,13 +3433,14 @@ static void SEQ2_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
       wake_up_interruptible(&cam->enc_queue);
       break;
 
-    case 25:
+    case 30:
       stop_epit(cam);
       cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.  This is the completion of the All Laser Frame.
       done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
       list_add_tail(&done_frame->queue, &cam->done_q);
 
       gpio_set_value(cam->gpio_LASER1, 0);
+			//gpio_set_value(cam->gpio_LASER2, 1); //Temparary
       start_epit(cam);
 
       /* Wake up the queue */
@@ -3399,7 +3448,7 @@ static void SEQ2_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
       wake_up_interruptible(&cam->enc_queue);
       break;
       
-    case 30:
+    case 36:
       stop_epit(cam);
       done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
       list_add_tail(&done_frame->queue, &cam->done_q);
@@ -3422,6 +3471,7 @@ static void SEQ2_StateMachine(cam_data *cam, struct mxc_v4l_frame *done_frame)
       /* Wake up the queue */
       cam->enc_counter++;
       wake_up_interruptible(&cam->enc_queue);
+
       break;
 
     default:
@@ -3671,6 +3721,7 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 
 	init_waitqueue_head(&cam->enc_queue);
 	init_waitqueue_head(&cam->still_queue);
+	init_waitqueue_head(&cam->seq_queue);
 
 	/* setup cropping */
 	cam->crop_bounds.left = 0;
@@ -3831,10 +3882,8 @@ static void imx_v4l2_epit_irq_acknowledge(cam_data *cam)
 /*****************************************************************************/
 static irqreturn_t imx_v4l2_epit_timer_interrupt(int irq, void *dev_id)
 {
-  cam_data* cam = NULL;
   struct device*	pdev = (struct device*)dev_id;
-
-  cam = dev_get_drvdata(pdev);
+  cam_data* cam = dev_get_drvdata(pdev);
 
 	imx_v4l2_epit_irq_acknowledge(cam);
 
@@ -3865,10 +3914,11 @@ static irqreturn_t imx_v4l2_epit_timer_interrupt(int irq, void *dev_id)
       case 1:
       case 2:
       case 3:
+			case 4:
         cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
         break;
 
-      case 4:
+      case 5:
         cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
         gpio_set_value(cam->gpio_FLEN, 1);
         stop_epit(cam);
@@ -3885,25 +3935,36 @@ static irqreturn_t imx_v4l2_epit_timer_interrupt(int irq, void *dev_id)
       case 1:
       case 2:
       case 3:
-      case 6:
+			case 4:
+
       case 7:
       case 8:
-      case 11:
-      case 12:
+      case 9:
+			case 10:
+
       case 13:
+      case 14:
+      case 15:
       case 16:
-      case 17:
-      case 18:
+
+      case 19:
+      case 20:
       case 21:
       case 22:
-      case 23:
+
+      case 25:
       case 26:
       case 27:
       case 28:
+
+			case 31:
+      case 32:
+      case 33:
+      case 34:
         cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
         break;
 
-      case 4:
+      case 5:
         cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
         gpio_set_value(cam->gpio_FLEN, 1);
         gpio_set_value(cam->gpio_LASER1, 0);
@@ -3912,31 +3973,31 @@ static irqreturn_t imx_v4l2_epit_timer_interrupt(int irq, void *dev_id)
         stop_epit(cam);
         break;
 
-      case 9:
+      case 11:
         cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
         gpio_set_value(cam->gpio_LASER3, 1);
         stop_epit(cam);
         break;
 
-      case 14:
+      case 17:
         cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
         gpio_set_value(cam->gpio_LASER1, 1);
         gpio_set_value(cam->gpio_LASER2, 1);
         stop_epit(cam);
         break;
 
-      case 19:
+      case 23:
         cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
         stop_epit(cam);
         break;
 
-      case 24:
+      case 29:
         cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
         gpio_set_value(cam->gpio_LASER2, 1);
         stop_epit(cam);
         break;
 
-      case 29:
+      case 35:
         cam->stateMachineIndex++; //Move the Statemachine Forward.  Expected Event Seen.
         stop_epit(cam);
         break;
@@ -3965,28 +4026,28 @@ static irqreturn_t imx_v4l2_href_interrupt(int irq, void *dev_id)
 /*****************************************************************************/
 static void start_epit(cam_data *cam)
 {
-  __raw_writel(0x0, cam->epit_base + EPITCR);
-  imx_v4l2_epit_irq_acknowledge(cam);
+  //writel(0x0, cam->epit_base + EPITCR);
+  //imx_v4l2_epit_irq_acknowledge(cam);
 
-  writel(0x000B3095, cam->epit_base + EPITLR); //This gives a count of 0.011111106061 Seconds
-  writel(0x00000000, cam->epit_base + EPITCMPR); //Signal Interupt when counter __raw_writel(0x0, base + EPITCR);Reaches zero
-	writel(EPITCR_CLKSRC_REF_HIGH | EPITCR_RLD | EPITCR_ENMOD | EPITCR_DBGEN | EPITCR_WAITEN | EPITCR_STOPEN, cam->epit_base + EPITCR);
-  writel(0x000B3095, cam->epit_base + EPITLR); //This gives a count of 0.011111106061 Seconds
+  //writel(0x000B3095, cam->epit_base + EPITLR); //This gives a count of 0.011111106061 Seconds
+  //writel(0x00000000, cam->epit_base + EPITCMPR); //Signal Interupt when counter Reaches zero
+	//writel(EPITCR_CLKSRC_REF_HIGH | EPITCR_RLD | EPITCR_ENMOD | EPITCR_DBGEN | EPITCR_WAITEN | EPITCR_STOPEN, cam->epit_base + EPITCR);
+
   imx_v4l2_epit_irq_acknowledge(cam);
   imx_v4l2_epit_enable(cam);
   imx_v4l2_epit_irq_enable(cam);
 
-  imx_v4l2_io4_toggle(cam);
+  //imx_v4l2_io4_toggle(cam);
 }
 
 /*****************************************************************************/
 static void stop_epit(cam_data *cam)
 {
-  imx_v4l2_epit_irq_disable(cam);
+	imx_v4l2_epit_irq_disable(cam);
   imx_v4l2_epit_disable(cam);
   imx_v4l2_epit_irq_acknowledge(cam);
 
-  imx_v4l2_io4_toggle(cam);
+  //imx_v4l2_io4_toggle(cam);
 }
 
 /*****************************************************************************/
@@ -4054,7 +4115,6 @@ static int imx_v4l2_epit_probe(struct platform_device *pdev, cam_data *cam)
   writel(0x000B3095, cam->epit_base + EPITLR); //This gives a count of 0.011111106061 Seconds
   writel(0x00000000, cam->epit_base + EPITCMPR); //Signal Interupt when counter __raw_writel(0x0, base + EPITCR);Reaches zero
 	writel(EPITCR_CLKSRC_REF_HIGH | EPITCR_RLD | EPITCR_ENMOD | EPITCR_DBGEN | EPITCR_WAITEN | EPITCR_STOPEN, cam->epit_base + EPITCR);
-  writel(0x000B3095, cam->epit_base + EPITLR); //This gives a count of 0.011111106061 Seconds
   imx_v4l2_epit_irq_acknowledge(cam);
 
   return 0;

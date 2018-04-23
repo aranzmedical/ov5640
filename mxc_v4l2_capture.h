@@ -36,7 +36,7 @@
 #include <linux/ipu-v3.h>
 #include <linux/platform_data/dma-imx.h>
 #include <linux/mipi_csi2.h>
-
+#include <linux/kthread.h>  // for threads
 #include <media/v4l2-dev.h>
 #include "v4l2-int-device.h"
 
@@ -287,6 +287,10 @@ typedef struct _cam_data {
   unsigned mode;
   unsigned stateMachineIndex;
   struct v4l2_seq_settings seq_settings;
+	struct task_struct* frame_settings_thread;
+
+	wait_queue_head_t seq_queue;
+	int seq_counter;
 
 } cam_data;
 
