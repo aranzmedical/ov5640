@@ -81,7 +81,7 @@
 
 #define EPITSR_OCIF			(1 << 0)
 
-#define ARANZ_DEBUG
+//#define ARANZ_DEBUG
 
 #define init_MUTEX(sem)         sema_init(sem, 1)
 
@@ -274,34 +274,6 @@ static struct v4l2_int_master mxc_v4l2_master = {
 	.detach = mxc_v4l2_master_detach,
 };
 
-// #ifdef ARANZ_DEBUG
-// /*********************************************************************************************************************/
-// static void mxc_print_llist(struct list_head *llist)
-// {
-//   struct list_head *node;
-//   struct mxc_v4l_frame *frame;
-//   int index = 0;
-
-//   printk(KERN_ALERT "mxc_print_readyBuffer:\n");
-//   printk(KERN_ALERT "Self: %p Next: %p, Prev: %p\n", llist, llist->next, llist->prev);
-
-//   list_for_each(node, llist) 
-//   {
-//     printk(KERN_ALERT "  Pos: %d\n", index);
-//     printk(KERN_ALERT "  Node: %p, Next: %p, Prev: %p\n", node, node->next, node->prev);
-
-//     frame = list_entry(node, struct mxc_v4l_frame, queue);
-    
-//     printk(KERN_ALERT "  Index: %d\n", frame->index);
-//     printk(KERN_ALERT "  PAddress: %X\n", frame->paddress);
-//     printk(KERN_ALERT "  vAddress: %p\n", frame->vaddress);
-//     printk(KERN_ALERT "  Buffer Index: %d\n", frame->buffer.index);
-//     printk(KERN_ALERT "  Buffer Flags: %X\n", frame->buffer.flags);
-//     index++;
-//   }
-// }
-// #endif
-
 /*****************************************************************************/
 static void imx_v4l2_io3_toggle(cam_data *cam)
 {
@@ -351,8 +323,6 @@ static int setLaserFrameSettings(void *dev)
 		c.id = V4L2_CID_GAIN;
 		c.value = cam->seq_settings.laserGain;
 		vidioc_int_s_ctrl(cam->sensor, &c);
-
-		printk(KERN_ALERT "***!@#!@#!@#*** SetLaserFrameSettings Thread Ran....\n");
 	}
 
 	return 0;
@@ -3518,13 +3488,13 @@ static void camera_callback(u32 mask, void *dev)
 
     if (done_frame->buffer.index >= FRAME_NUM)
     {
-      pr_err("ERROR: v4l2 capture: camera_callback: Skipping dummy_frame.\n");
+      //pr_err("ERROR: v4l2 capture: camera_callback: Skipping dummy_frame.\n");
 			goto next;
     }
 
 		if (done_frame->ipu_buf_num != cam->local_buf_num)
     {
-      pr_err("ERROR: v4l2 capture: camera_callback: PingPong index Mismatch: %d != %d.\n", done_frame->ipu_buf_num, cam->local_buf_num);
+      //pr_err("ERROR: v4l2 capture: camera_callback: PingPong index Mismatch: %d != %d.\n", done_frame->ipu_buf_num, cam->local_buf_num);
 			goto next;
     }
 
@@ -3560,16 +3530,16 @@ static void camera_callback(u32 mask, void *dev)
         wake_up_interruptible(&cam->enc_queue);
         //pr_err("v4l2 capture: camera_callback: Frame Done: %d, PingPong: %d\n", done_frame->index, done_frame->ipu_buf_num);
       }
-		} 
+		}
     else
     {
 			pr_err("ERROR: v4l2 capture: camera_callback: buffer not queued.\n");
     }
 	}
-  else
-  {
-    pr_err("ERROR: v4l2 capture: camera_callback: working_q empty.\n");
-  }
+  // else
+  // {
+  //   pr_err("ERROR: v4l2 capture: camera_callback: working_q empty.\n");
+  // }
 
 next:
 	if (!list_empty(&cam->ready_q)) 
@@ -3602,7 +3572,7 @@ next:
       cam->dummy_frame.ipu_buf_num = cam->ping_pong_csi;
 			if (cam->enc_update_eba(cam->ipu, cam->dummy_frame.buffer.m.offset, &cam->ping_pong_csi) == 0) 
       {
-        pr_err("ERROR: v4l2 capture: camera_callback: queue dummy frame.\n");
+        //pr_err("ERROR: v4l2 capture: camera_callback: queue dummy frame.\n");
         cam->dummy_frame.index = FRAME_NUM;
         cam->dummy_frame.buffer.index = FRAME_NUM;
       }
@@ -4055,8 +4025,6 @@ static int imx_v4l2_epit_probe(struct platform_device *pdev, cam_data *cam)
 {
   int err = -ENODEV;
 
-  printk(KERN_ALERT "imx_v4l2_epit_probe.\n");
-
   cam->epit_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
   cam->epit_base = devm_ioremap_resource(&pdev->dev, cam->epit_res);
   if (IS_ERR(cam->epit_base))
@@ -4064,8 +4032,6 @@ static int imx_v4l2_epit_probe(struct platform_device *pdev, cam_data *cam)
     dev_err(&pdev->dev, "unable to get mem ressource\n");
     return PTR_ERR(cam->epit_base);
   }
-
-  printk(KERN_ALERT "imx_v4l2_epit_probe:base:  %p\n", cam->epit_base);
 
   cam->epit_irq = platform_get_irq(pdev, 0);
   if (cam->epit_irq < 0)
@@ -4080,8 +4046,6 @@ static int imx_v4l2_epit_probe(struct platform_device *pdev, cam_data *cam)
     dev_err(&pdev->dev, "can't reserve irq = %d\n", cam->epit_irq);
     return err;
   }
-
-  printk(KERN_ALERT "imx_v4l2_epit_probe:EPIT irq: %d\n", cam->epit_irq);
 
   cam->epit_clk_per = devm_clk_get(&pdev->dev, "per");
   if (IS_ERR(cam->epit_clk_per))
@@ -4106,8 +4070,6 @@ static int imx_v4l2_epit_probe(struct platform_device *pdev, cam_data *cam)
   {
     return err;
   }
-
-  printk(KERN_ALERT "imx_v4l2_epit_probe:Per Clock Rate:  %lu\n", clk_get_rate(cam->epit_clk_per));
 
 	__raw_writel(0x0, cam->epit_base + EPITCR);
   imx_v4l2_epit_irq_acknowledge(cam);
@@ -4138,8 +4100,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		return err;
 	}
 
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found io3 GPIO\n");
-
   cam->gpio_io4 = of_get_named_gpio(pdev->dev.of_node, "gpio_io4", 0);
   if (!gpio_is_valid(cam->gpio_io4)) 
   {
@@ -4152,8 +4112,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		dev_warn(&pdev->dev, "request of io4 pin failed");
 		return err;
 	}
-
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found io4 GPIO\n");
 
   cam->gpio_LED_EN = of_get_named_gpio(pdev->dev.of_node, "gpio_LED_EN", 0);
   if (!gpio_is_valid(cam->gpio_LED_EN)) 
@@ -4168,8 +4126,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		return err;
 	}
 
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED_EN GPIO\n");
-
   cam->gpio_LASER1 = of_get_named_gpio(pdev->dev.of_node, "gpio_LASER1", 0);
   if (!gpio_is_valid(cam->gpio_LASER1)) 
   {
@@ -4182,8 +4138,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		dev_warn(&pdev->dev, "request of Laser1 pin failed");
 		return err;
 	}
-
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LASER1 GPIO\n");
 
   cam->gpio_LASER2 = of_get_named_gpio(pdev->dev.of_node, "gpio_LASER2", 0);
   if (!gpio_is_valid(cam->gpio_LASER2)) 
@@ -4198,8 +4152,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		return err;
 	}
 
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LASER 2 GPIO\n");
-
   cam->gpio_LASER3 = of_get_named_gpio(pdev->dev.of_node, "gpio_LASER3", 0);
   if (!gpio_is_valid(cam->gpio_LASER3)) 
   {
@@ -4212,8 +4164,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		dev_warn(&pdev->dev, "request of Laser3 pin failed");
 		return err;
 	}
-
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LASER 3 GPIO\n");
 
   cam->gpio_LED1_EN = of_get_named_gpio(pdev->dev.of_node, "gpio_LED1_EN", 0);
   if (!gpio_is_valid(cam->gpio_LED1_EN)) 
@@ -4228,8 +4178,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		return err;
 	}
 
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED1_EN GPIO\n");
-
   cam->gpio_LED2_EN = of_get_named_gpio(pdev->dev.of_node, "gpio_LED2_EN", 0);
   if (!gpio_is_valid(cam->gpio_LED2_EN)) 
   {
@@ -4242,8 +4190,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		dev_warn(&pdev->dev, "request of LED2_EN pin failed");
 		return err;
 	}
-
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED2_EN GPIO\n");
 
   cam->gpio_LED_CUR1 = of_get_named_gpio(pdev->dev.of_node, "gpio_LED_CUR1", 0);
   if (!gpio_is_valid(cam->gpio_LED_CUR1)) 
@@ -4258,8 +4204,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		return err;
 	}
 
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED_CUR1 GPIO\n");
-
   cam->gpio_LED_CUR2 = of_get_named_gpio(pdev->dev.of_node, "gpio_LED_CUR2", 0);
   if (!gpio_is_valid(cam->gpio_LED_CUR2)) 
   {
@@ -4272,8 +4216,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		dev_warn(&pdev->dev, "request of LED_CUR2 pin failed");
 		return err;
 	}
-
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found LED_CUR2 GPIO\n");
 
   cam->gpio_FLEN = of_get_named_gpio(pdev->dev.of_node, "gpio_FLEN", 0);
   if (!gpio_is_valid(cam->gpio_FLEN)) 
@@ -4288,8 +4230,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		return err;
 	}
 
-  printk(KERN_ALERT "imx_v4l2_gpio_probe:Found FLEN GPIO\n");
-
   cam->gpio_CHARGE_EN = of_get_named_gpio(pdev->dev.of_node, "gpio_CHARGE_EN", 0);
   if (!gpio_is_valid(cam->gpio_CHARGE_EN)) 
   {
@@ -4302,42 +4242,6 @@ static int imx_v4l2_gpio_probe(struct platform_device *pdev, cam_data *cam)
 		dev_warn(&pdev->dev, "request of CHARGE_EN pin failed");
 		return err;
 	}
-
-  // printk(KERN_ALERT "imx_v4l2_gpio_probe:Found CHARGE_EN GPIO\n");
-
-  // cam->gpio_HREF = of_get_named_gpio(pdev->dev.of_node, "gpio_HREF", 0);
-  // if (!gpio_is_valid(cam->gpio_HREF)) 
-  // {
-	// 	dev_warn(&pdev->dev, "no HREF pin available");
-	// 	return -EINVAL;
-	// }
-	// err = devm_gpio_request_one(&pdev->dev, cam->gpio_HREF, GPIOF_IN, "gpio_HREF");
-	// if (err < 0) 
-  // {
-	// 	dev_warn(&pdev->dev, "request of HREF pin failed");
-	// 	return err;
-	// }
-
-  // gpio_set_debounce(cam->gpio_HREF, 1);               // Set a 1ms debounce
-
-  // printk(KERN_ALERT "imx_v4l2_gpio_probe:Found HREF GPIO\n");
-
-  // cam->href_irq = gpio_to_irq(cam->gpio_HREF);        // map GPIO to an IRQ
-  // if (cam->href_irq < 0)
-  // {
-  //   dev_err(&pdev->dev, "interrupt could not be assigned to gpio: %d\n", cam->href_irq);
-  //   err = -ENOENT;
-  //   return err;
-  // }
-
-  // err = request_irq(cam->href_irq, imx_v4l2_href_interrupt, IRQF_TRIGGER_FALLING, "href", &pdev->dev);
-  // if (err)
-  // {
-  //   dev_err(&pdev->dev, "can't reserve irq = %d, Error: %d\n", cam->href_irq, err);
-  //   return err;
-  // }
-
-  // printk(KERN_ALERT "imx_v4l2_gpio_probe:HREF irq: %d\n", cam->href_irq);
 
   return 0;
 }
